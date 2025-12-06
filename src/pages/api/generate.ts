@@ -112,6 +112,47 @@ ELEMENTS: Rounded rectangles, soft drop shadows, subtle gradient fills on icons,
 TONE: Educational, approachable, modern, trustworthy, optimistic
 LAYOUT STRUCTURE: Central hub with 4-8 branches radiating to subtopics. Each subtopic has a colorful icon and clear label. Branches curve organically, not rigid straight lines.
 AVOID: Harsh colors, sharp corners, cluttered layouts, hand-drawn/sketchy aesthetics, dark backgrounds, heavy gradients, busy patterns`,
+
+  'fhir-technical': `FHIR healthcare data standard technical diagram - clean architectural style:
+PURPOSE: Visualize FHIR resources, profiles, and data structures with medical precision.
+STYLE: Clean technical diagram like software architecture docs. Professional, precise.
+RESOURCES: Show as rounded rectangles with resource name as header. Elements listed inside with data types.
+CARDINALITY: Always show cardinality notation (0..1, 1..1, 0..*, 1..*) next to elements.
+COLOR CODING: Required elements in solid blue (#1E88E5), Optional in light gray (#9E9E9E), Extensions in orange (#FF7043), Must Support with green checkmark (#43A047).
+REFERENCES: Arrows between resources showing Reference() relationships. Label arrows with element name.
+SECTIONS: Group elements logically - identifiers, demographics, clinical, administrative.
+TYPOGRAPHY: Clean sans-serif. Resource names bold. Element names in monospace font.
+LAYOUT: Title at top with IG name if applicable. Main diagram below. Legend for color coding.
+AVOID: Overly decorative elements, unclear cardinalities, missing data types, ambiguous references.`,
+
+  'fhir-workflow': `FHIR healthcare data flow diagram - swimlane process style:
+PURPOSE: Show how FHIR resources flow between actors in healthcare workflows.
+STYLE: Swimlane diagram with clear actor separation. Timeline flows left-to-right.
+ACTORS: Horizontal lanes for each actor (Patient, Provider, Lab, Payer, etc.). Label lanes clearly.
+RESOURCES: Show as document icons or boxes with resource name. Color by type.
+API CALLS: Arrows between lanes showing REST operations (POST, GET, PUT). Label with operation.
+EVENTS: Vertical dotted lines for key events (order placed, specimen collected, results ready).
+SUBSCRIPTIONS: Dashed arrows for subscription notifications.
+TIMING: Optional time markers along bottom axis.
+COLOR PALETTE: Blues for clinical (#1E88E5), Greens for administrative (#43A047), Orange for financial (#FF7043).
+TYPOGRAPHY: Actor names in bold. Resource names in regular. API verbs in monospace.
+TITLE: Workflow name at top (e.g., "Lab Order to Result Workflow").
+AVOID: Crossing arrows when possible, unclear actor boundaries, missing API operations.`,
+
+  'fhir-hierarchy': `FHIR profile inheritance and extension hierarchy diagram - tree structure style:
+PURPOSE: Show how FHIR profiles inherit from base resources and add constraints/extensions.
+STYLE: Top-down tree diagram showing inheritance relationships.
+BASE: Root node shows base FHIR resource (e.g., Patient, Observation).
+PROFILES: Child nodes show derived profiles. Connect with solid lines.
+CONSTRAINTS: Show key constraints added at each level (cardinality changes, terminology bindings).
+EXTENSIONS: Show extension additions in orange boxes attached to profile nodes.
+INHERITANCE: Arrow direction shows "inherits from" relationship (child -> parent).
+DEPTH: Support multiple inheritance levels (Base -> US Core -> State-specific).
+ANNOTATIONS: Note which IG defines each profile.
+COLOR CODING: Base resources in gray, US Core profiles in blue, IG-specific profiles in teal, Extensions in orange.
+TYPOGRAPHY: Profile names in bold. Constraint summaries in smaller text.
+TITLE: "Profile Hierarchy: [Resource Name]" at top.
+AVOID: Cluttered constraint lists, unclear inheritance direction, missing extension definitions.`,
 };
 
 const WATERMARK_TEXT = 'getclario.net';
