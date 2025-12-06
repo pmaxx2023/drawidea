@@ -13,6 +13,7 @@
     "@astrojs/tailwind": "^6.0.2",
     "@astrojs/vercel": "^9.0.2",
     "@google/genai": "^1.30.0",
+    "@supabase/supabase-js": "^2.86.2",
     "@tailwindcss/postcss": "^4.1.17",
     "@vercel/analytics": "^1.5.0",
     "@vercel/blob": "^2.0.0",
