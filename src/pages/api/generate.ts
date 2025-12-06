@@ -155,17 +155,28 @@ VISUAL SIMPLICITY - CRITICAL:
 - Generous whitespace between steps
 
 ACCURACY REQUIREMENTS - CRITICAL:
-- For PAYER-TO-PAYER exchange:
-  1. Auth (OAuth/SMART)
-  2. Member Match ($member-match)
-  3. Consent verification
-  4. Data retrieval ($everything or $export)
-  5. Store with Provenance
-- Claims/financial data = ExplanationOfBenefit
-- Clinical summaries in payer context = grouped clinical resources OR DocumentReference to C-CDA, NOT ClinicalImpression
-- NEVER use ClinicalImpression - it's for clinical decision support at point of care, NOT payer data exchange
+- For PAYER-TO-PAYER exchange, there are TWO DISTINCT AUTHORIZATION LAYERS that must be shown separately:
 
-AVOID: ClinicalImpression anywhere in payer workflows, direct Patient queries between payers, dense technical detail in main flow, more than 6 steps.`,
+  PHASE 1 - PATIENT CONSENT (Business/Legal - happens first, could be days/weeks before technical exchange):
+  - Patient enrolls with New Payer (Payer B)
+  - Patient provides Old Payer (Payer A) member information
+  - Patient signs consent authorizing data transfer → Consent resource created
+  - This is in the PATIENT lane, initiating the whole process
+
+  PHASE 2 - TECHNICAL EXCHANGE (System-to-system - happens after consent exists):
+  1. Payer B authenticates to Payer A (OAuth/SMART Backend Services) - this is SYSTEM auth, not patient auth
+  2. Payer B calls $member-match (includes reference to Consent)
+  3. Payer A validates consent exists and is active
+  4. Payer B retrieves data ($everything or $export)
+  5. Payer B stores with Provenance
+
+- Show clear visual separation between Phase 1 (patient-initiated) and Phase 2 (system-to-system)
+- Use timeline or phase markers to show these happen at different times
+- Claims/financial data = ExplanationOfBenefit
+- Clinical summaries = grouped clinical resources OR DocumentReference, NOT ClinicalImpression
+- NEVER use ClinicalImpression
+
+AVOID: Conflating patient consent with system authentication, ClinicalImpression anywhere, direct Patient queries between payers.`,
 
   'fhir-hierarchy': `FHIR profile inheritance and extension hierarchy diagram - tree structure style:
 PURPOSE: Show how FHIR profiles inherit from base resources and add constraints/extensions.
