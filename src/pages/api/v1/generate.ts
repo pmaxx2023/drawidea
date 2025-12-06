@@ -115,21 +115,30 @@ STYLE: Swimlane diagram with clear actor separation. Timeline flows left-to-righ
 ACTORS: Horizontal lanes for each actor (Patient, Provider, Lab, Payer, etc.). Label lanes clearly.
 RESOURCES: Show as document icons or boxes with resource name. Color by type.
 API CALLS: Arrows between lanes showing REST operations (POST, GET, PUT). Label with operation.
-EVENTS: Vertical dotted lines for key events (order placed, specimen collected, results ready).
-SUBSCRIPTIONS: Dashed arrows for subscription notifications.
-TIMING: Optional time markers along bottom axis.
 COLOR PALETTE: Blues for clinical (#1E88E5), Greens for administrative (#43A047), Orange for financial (#FF7043).
 TYPOGRAPHY: Actor names in bold. Resource names in regular. API verbs in monospace.
-TITLE: Workflow name at top (e.g., "Lab Order to Result Workflow").
+TITLE: Workflow name at top with problem statement below.
+
+VISUAL SIMPLICITY - CRITICAL:
+- Show 4-6 KEY STEPS maximum in the main flow - this is an overview, not a spec
+- One arrow per major interaction, not every API call
+- Group related resources (e.g., "Clinical Data" instead of listing Condition, Procedure, Observation separately)
+- Use simple labels: "Match Patient" not "POST Patient/$member-match with Parameters containing MemberPatient and CoverageToMatch"
+- Technical details (operation names, parameters) go in small annotations OR a legend, not cluttering the main flow
+- Generous whitespace between steps
+
 ACCURACY REQUIREMENTS - CRITICAL:
-- For PAYER-TO-PAYER exchange: MUST show $member-match operation first (POST Patient/$member-match), NOT direct Patient queries
-- For PAYER-TO-PAYER: Include Consent resource (patient authorization required)
-- For bulk data retrieval: Use Patient/$everything or $export, NOT individual GET calls
-- For prior authorization: Use Claim with use=preauthorization and $submit operation
-- Include SMART Backend Services OAuth flow for system-to-system auth
-- Claims data uses ExplanationOfBenefit, NOT ClinicalImpression
-- Show Provenance for data exchange (tracks data origin)
-AVOID: Direct Patient?identifier queries between payers, missing Consent, missing authentication, ClinicalImpression for claims.`,
+- For PAYER-TO-PAYER exchange:
+  1. Auth (OAuth/SMART)
+  2. Member Match ($member-match)
+  3. Consent verification
+  4. Data retrieval ($everything or $export)
+  5. Store with Provenance
+- Claims/financial data = ExplanationOfBenefit
+- Clinical summaries in payer context = grouped clinical resources OR DocumentReference to C-CDA, NOT ClinicalImpression
+- NEVER use ClinicalImpression - it's for clinical decision support at point of care, NOT payer data exchange
+
+AVOID: ClinicalImpression anywhere in payer workflows, direct Patient queries between payers, dense technical detail in main flow, more than 6 steps.`,
 
   'fhir-hierarchy': `FHIR profile inheritance and extension hierarchy diagram - tree structure style:
 PURPOSE: Show how FHIR profiles inherit from base resources and add constraints/extensions.
