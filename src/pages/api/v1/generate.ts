@@ -119,6 +119,12 @@ COLOR PALETTE: Blues for clinical (#1E88E5), Greens for administrative (#43A047)
 TYPOGRAPHY: Actor names in bold. Resource names in regular. API verbs in monospace.
 TITLE: Workflow name at top with problem statement below.
 
+LAYOUT STRUCTURE:
+1. Title + problem statement at very top
+2. Numbered step summary (e.g., "1. Auth → 2. Match → 3. Retrieve → 4. Store") immediately below title as a roadmap
+3. Detailed swimlane diagram below the step summary
+4. The numbered steps help readers understand what they're about to see before diving into detail
+
 VISUAL SIMPLICITY - CRITICAL:
 - Show 4-6 KEY STEPS maximum in the main flow - this is an overview, not a spec
 - One arrow per major interaction, not every API call
