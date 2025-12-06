@@ -92,11 +92,11 @@ import "../styles/global.css";
 </div>
 </div>
 </div>
-<div id="result-section" class="hidden mt-8"><img id="result-image" class="w-full rounded-xl" /><a id="download-btn" class="block mt-4 bg-blue-500 text-white py-4 rounded-xl text-center font-bold">Download</a></div>
+<div id="result-section" class="hidden mt-8"><img id="result-image" class="w-full rounded-xl" /><button id="download-btn" type="button" class="block w-full mt-4 bg-blue-500 text-white py-4 rounded-xl text-center font-bold cursor-pointer">Download</button></div>
 <div id="error-section" class="hidden mt-8 text-center text-red-400"><p id="error-message">Error</p><button id="retry-btn" class="mt-2 bg-red-500 text-white py-2 px-4 rounded">Retry</button></div>
 </div>
 </section>
-<script>
+<script is:inline>
 const VALID_CODE = "1001-01";
 const gate = document.getElementById("email-gate");
 const nameIn = document.getElementById("user-name");
@@ -113,6 +113,8 @@ const resImg = document.getElementById("result-image");
 const dlBtn = document.getElementById("download-btn");
 const errMsg = document.getElementById("error-message");
 const retry = document.getElementById("retry-btn");
+
+let currentImageUrl = null;
 
 if(localStorage.getItem("clario_unlocked")==="true"){gate.classList.add("hidden");genBtn.classList.remove("hidden");}
 
@@ -162,11 +164,32 @@ async function gen(){
   try{
     const r=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({concept:c,style:styleSelect.value})});
     if(!r.ok)throw new Error(await r.text());
-    const d=await r.json();resImg.src=d.imageUrl;dlBtn.href=d.imageUrl;
+    const d=await r.json();
+    resImg.src=d.imageUrl;
+    currentImageUrl=d.imageUrl;
     stopProgress();
     loading.classList.add("hidden");result.classList.remove("hidden");
   }catch(x){stopProgress();loading.classList.add("hidden");errMsg.textContent=x.message;errSec.classList.remove("hidden");}
 }
+
+dlBtn.onclick = async () => {
+  if(!currentImageUrl) return;
+  try {
+    const response = await fetch(currentImageUrl);
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "clario-" + Date.now() + ".png";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch(e) {
+    window.open(currentImageUrl, "_blank");
+  }
+};
+
 genBtn.onclick=gen;retry.onclick=gen;
 </script>
 </body>
