@@ -123,7 +123,12 @@ REFERENCES: Arrows between resources showing Reference() relationships. Label ar
 SECTIONS: Group elements logically - identifiers, demographics, clinical, administrative.
 TYPOGRAPHY: Clean sans-serif. Resource names bold. Element names in monospace font.
 LAYOUT: Title at top with IG name if applicable. Main diagram below. Legend for color coding.
-AVOID: Overly decorative elements, unclear cardinalities, missing data types, ambiguous references.`,
+ACCURACY REQUIREMENTS:
+- Use EXACT FHIR resource names (Patient, Observation, Condition, Coverage, ExplanationOfBenefit, etc.)
+- Use correct cardinality from FHIR spec
+- For US Core profiles, show extensions: us-core-race, us-core-ethnicity, us-core-birthsex
+- Reference targets must be valid (e.g., Condition.subject -> Reference(Patient|Group))
+AVOID: Made-up resource names, incorrect cardinalities, ClinicalImpression for payer data, overly decorative elements.`,
 
   'fhir-workflow': `FHIR healthcare data flow diagram - swimlane process style:
 PURPOSE: Show how FHIR resources flow between actors in healthcare workflows.
@@ -137,7 +142,15 @@ TIMING: Optional time markers along bottom axis.
 COLOR PALETTE: Blues for clinical (#1E88E5), Greens for administrative (#43A047), Orange for financial (#FF7043).
 TYPOGRAPHY: Actor names in bold. Resource names in regular. API verbs in monospace.
 TITLE: Workflow name at top (e.g., "Lab Order to Result Workflow").
-AVOID: Crossing arrows when possible, unclear actor boundaries, missing API operations.`,
+ACCURACY REQUIREMENTS - CRITICAL:
+- For PAYER-TO-PAYER exchange: MUST show $member-match operation first (POST Patient/$member-match), NOT direct Patient queries
+- For PAYER-TO-PAYER: Include Consent resource (patient authorization required)
+- For bulk data retrieval: Use Patient/$everything or $export, NOT individual GET calls
+- For prior authorization: Use Claim with use=preauthorization and $submit operation
+- Include SMART Backend Services OAuth flow for system-to-system auth
+- Claims data uses ExplanationOfBenefit, NOT ClinicalImpression
+- Show Provenance for data exchange (tracks data origin)
+AVOID: Direct Patient?identifier queries between payers, missing Consent, missing authentication, ClinicalImpression for claims.`,
 
   'fhir-hierarchy': `FHIR profile inheritance and extension hierarchy diagram - tree structure style:
 PURPOSE: Show how FHIR profiles inherit from base resources and add constraints/extensions.
@@ -152,7 +165,13 @@ ANNOTATIONS: Note which IG defines each profile.
 COLOR CODING: Base resources in gray, US Core profiles in blue, IG-specific profiles in teal, Extensions in orange.
 TYPOGRAPHY: Profile names in bold. Constraint summaries in smaller text.
 TITLE: "Profile Hierarchy: [Resource Name]" at top.
-AVOID: Cluttered constraint lists, unclear inheritance direction, missing extension definitions.`,
+ACCURACY REQUIREMENTS:
+- US Core Patient requires: identifier 1..*, name 1..*, gender 1..1
+- US Core Patient extensions: us-core-race, us-core-ethnicity, us-core-birthsex, us-core-genderIdentity
+- US Core Condition requires: category 1..*, code 1..1, subject 1..1
+- Show correct IG source (US Core, Da Vinci PDex, CARIN BB, etc.)
+- Terminology bindings: SNOMED for conditions, LOINC for observations, RxNorm for medications
+AVOID: Incorrect cardinality constraints, missing standard extensions, wrong IG attribution.`,
 };
 
 const WATERMARK_TEXT = 'getclario.net';
