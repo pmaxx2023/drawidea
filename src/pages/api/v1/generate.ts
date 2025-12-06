@@ -2,6 +2,11 @@ import type { APIRoute } from 'astro';
 import { GoogleGenAI } from '@google/genai';
 import { validateApiKey, recordUsage } from '../../../lib/api-auth';
 
+// Style aliases for user-friendly names
+const STYLE_ALIASES: Record<string, string> = {
+  whiteboard: 'xplane',
+};
+
 const STYLE_PROMPTS: Record<string, string> = {
   xplane: `Visual thinking illustration with confident hand-drawn energy:
 DRAWING: Bold sketchy linework with confident variable strokes, thicker lines for emphasis, black/charcoal lines with occasional colored outlines for key elements
@@ -118,7 +123,10 @@ export const POST: APIRoute = async ({ request }) => {
 
   try {
     const body = await request.json();
-    const { concept, style = 'xplane' } = body;
+    const { concept, style: rawStyle = 'whiteboard' } = body;
+
+    // Resolve style aliases
+    const style = STYLE_ALIASES[rawStyle] || rawStyle;
 
     if (!concept || typeof concept !== 'string') {
       return new Response(JSON.stringify({
@@ -130,10 +138,11 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
+    const validStyles = [...Object.keys(STYLE_PROMPTS), ...Object.keys(STYLE_ALIASES)];
     if (!STYLE_PROMPTS[style]) {
       return new Response(JSON.stringify({
         error: 'Invalid style',
-        message: `Valid styles: ${Object.keys(STYLE_PROMPTS).join(', ')}`
+        message: `Valid styles: ${validStyles.join(', ')}`
       }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
