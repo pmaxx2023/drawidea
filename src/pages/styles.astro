@@ -1,0 +1,193 @@
+---
+import '../styles/global.css';
+
+const styles = [
+  {
+    id: 'xplane',
+    name: 'Whiteboard',
+    description: 'Bold hand-drawn energy with vibrant colors. Professional yet approachable.',
+    image: '/styles/wifi-xplane.png',
+    color: '#1E88E5',
+  },
+  {
+    id: 'tron',
+    name: 'Tron Dark Whiteboard',
+    description: 'Sketchy white lines on dark background with neon accents. Technical and modern.',
+    image: '/styles/wifi-tron.png',
+    color: '#00D9FF',
+  },
+  {
+    id: 'minimal-line',
+    name: 'Minimal Line Art',
+    description: 'Single continuous line, Picasso-inspired. Elegant and sophisticated.',
+    image: '/styles/wifi-minimal-line.png',
+    color: '#2D2D2D',
+  },
+  {
+    id: 'woodcut',
+    name: 'Woodcut Print',
+    description: 'Bold black and white block printing style. Literary and timeless.',
+    image: '/styles/wifi-woodcut.png',
+    color: '#1a1a1a',
+  },
+  {
+    id: 'risograph',
+    name: 'Risograph Editorial',
+    description: 'Grainy texture with muted pastels. New Yorker magazine aesthetic.',
+    image: '/styles/wifi-risograph.png',
+    color: '#9B7ED9',
+  },
+  {
+    id: 'editorial',
+    name: 'Magazine Editorial',
+    description: 'Abstract visual metaphors. Think Atlantic or HBR cover art.',
+    image: '/styles/wifi-editorial.png',
+    color: '#FF5252',
+  },
+  {
+    id: 'roadmap',
+    name: 'Technical Roadmap',
+    description: 'Architecture diagrams with real tech names. Developer-friendly.',
+    image: '/styles/wifi-roadmap.png',
+    color: '#43A047',
+  },
+  {
+    id: 'infographic',
+    name: 'Modern Infographic',
+    description: 'Clean hub-and-spoke layout. Polished and professional.',
+    image: '/styles/wifi-infographic.png',
+    color: '#7EB3E0',
+  },
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Visual Styles - Clario</title>
+    <meta name="description" content="Explore 8 unique visual styles for explaining concepts. From hand-drawn sketches to editorial illustrations." />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Architects+Daughter&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script defer src="/_vercel/insights/script.js"></script>
+  </head>
+  <body class="min-h-screen bg-gray-950 text-white">
+
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-gray-950/95 backdrop-blur-sm border-b border-gray-800">
+      <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#1E88E5] to-[#FF7043] flex items-center justify-center shadow-lg" style="transform: rotate(-3deg);">
+            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+            </svg>
+          </div>
+          <div>
+            <span class="text-2xl font-extrabold tracking-tight block">Clario</span>
+            <span class="text-xs text-gray-400">We turn complexity into clarity</span>
+          </div>
+        </a>
+        <a href="/#create" class="hand-btn bg-[#FF7043] hover:bg-[#FF5722] text-white py-3 px-6 rounded-xl transition-all shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 hover:scale-105 font-bold">
+          Create a Clario
+        </a>
+      </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="pt-32 pb-12 px-6">
+      <div class="max-w-4xl mx-auto text-center">
+        <h1 class="text-5xl font-extrabold mb-4">
+          <span class="bg-gradient-to-r from-[#1E88E5] to-[#FF7043] bg-clip-text text-transparent">8 Visual Styles</span>
+        </h1>
+        <p class="text-xl text-gray-400 mb-2">Same concept, completely different vibes.</p>
+        <p class="text-gray-500">Each style brings its own personality to your explanations.</p>
+      </div>
+    </section>
+
+    <!-- Concept Banner -->
+    <section class="px-6 pb-8">
+      <div class="max-w-4xl mx-auto">
+        <div class="bg-gray-900/80 rounded-xl p-6 border border-gray-700 text-center">
+          <p class="text-gray-400 text-sm mb-2 hand-label">The concept:</p>
+          <p class="text-white text-lg font-medium">"How WiFi Works"</p>
+          <p class="text-gray-500 text-sm mt-1">Router broadcasts radio waves, devices connect wirelessly, data flows back and forth.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Style Gallery -->
+    <section class="py-8 px-6">
+      <div class="max-w-7xl mx-auto">
+        <div class="grid md:grid-cols-2 gap-8">
+          {styles.map((style) => (
+            <a
+              href={`/?style=${style.id}#create`}
+              class="group block bg-gray-900/50 rounded-2xl overflow-hidden border border-gray-800 hover:border-gray-600 transition-all duration-300 hover:scale-[1.02]"
+              style={`box-shadow: 0 4px 20px ${style.color}20;`}
+            >
+              <!-- Image -->
+              <div class="relative overflow-hidden">
+                <img
+                  src={style.image}
+                  alt={`${style.name} example`}
+                  class="w-full h-auto transition-transform duration-300 group-hover:scale-105"
+                />
+                <div class="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-60"></div>
+              </div>
+
+              <!-- Info -->
+              <div class="p-6">
+                <div class="flex items-center gap-3 mb-2">
+                  <div
+                    class="w-4 h-4 rounded-full"
+                    style={`background-color: ${style.color};`}
+                  ></div>
+                  <h3 class="text-xl font-bold text-white group-hover:text-[#FF7043] transition-colors">
+                    {style.name}
+                  </h3>
+                </div>
+                <p class="text-gray-400 text-sm mb-4">{style.description}</p>
+                <div class="flex items-center gap-2 text-[#1E88E5] text-sm font-medium group-hover:text-[#FF7043] transition-colors">
+                  <span>Try this style</span>
+                  <svg class="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+                  </svg>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="py-16 px-6">
+      <div class="max-w-3xl mx-auto text-center">
+        <h2 class="text-3xl font-extrabold mb-4 text-white">Ready to create your own?</h2>
+        <p class="text-gray-400 mb-8">Pick a style and describe your concept. We'll handle the rest.</p>
+        <a
+          href="/#create"
+          class="inline-flex items-center gap-3 bg-gradient-to-r from-[#1E88E5] to-[#1565C0] hover:from-[#1976D2] hover:to-[#0D47A1] text-white py-4 px-8 rounded-xl transition-all text-xl font-bold shadow-xl shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-105"
+        >
+          Create Your Clario
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+          </svg>
+        </a>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="py-8 px-6 bg-gray-950 border-t border-gray-800">
+      <div class="max-w-4xl mx-auto text-center">
+        <p class="text-gray-400 text-lg font-bold mb-1">getclario.net</p>
+        <p class="text-gray-500 text-sm hand-label">
+          We turn complexity into clarity
+        </p>
+      </div>
+    </footer>
+
+  </body>
+</html>

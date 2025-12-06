@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hurricane Passage - Level 1</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: #f0f4f8;
+      padding: 20px;
+    }
+
+    .page {
+      width: 8.5in;
+      height: 11in;
+      background: white;
+      margin: 0 auto;
+      padding: 0.5in;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 4px solid #0ea5e9;
+      margin-bottom: 16px;
+    }
+
+    .level-badge {
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      color: white;
+      padding: 8px 20px;
+      border-radius: 25px;
+      font-weight: 700;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .grade-badge {
+      background: #f0f9ff;
+      color: #0369a1;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 2px solid #bae6fd;
+    }
+
+    /* Title */
+    .title {
+      font-size: 26px;
+      font-weight: 800;
+      color: #0c4a6e;
+      margin-bottom: 16px;
+      text-align: center;
+    }
+
+    /* Main content area */
+    .content {
+      display: flex;
+      gap: 20px;
+      flex: 1;
+    }
+
+    /* Left column - passage */
+    .passage-column {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .passage-text {
+      font-size: 13px;
+      line-height: 1.9;
+      color: #1e293b;
+      text-align: justify;
+      column-count: 1;
+    }
+
+    .passage-text p {
+      margin-bottom: 12px;
+      text-indent: 1.5em;
+    }
+
+    .passage-text p:first-child {
+      text-indent: 0;
+    }
+
+    .passage-text p:first-child::first-letter {
+      font-size: 42px;
+      font-weight: 800;
+      color: #0ea5e9;
+      float: left;
+      line-height: 1;
+      margin-right: 8px;
+      margin-top: 4px;
+    }
+
+    /* Right column - illustration */
+    .illustration-column {
+      width: 3in;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .illustration {
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      border: 3px solid #e0f2fe;
+    }
+
+    .illustration img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .illustration-caption {
+      background: #f0f9ff;
+      padding: 8px 12px;
+      font-size: 11px;
+      color: #0369a1;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    /* Key vocabulary box */
+    .vocab-box {
+      background: linear-gradient(135deg, #fef3c7, #fde68a);
+      border-radius: 12px;
+      padding: 14px;
+      margin-top: auto;
+    }
+
+    .vocab-box h4 {
+      font-size: 12px;
+      font-weight: 800;
+      color: #92400e;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .vocab-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .vocab-word {
+      background: white;
+      padding: 4px 10px;
+      border-radius: 15px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #78350f;
+      border: 1px solid #fbbf24;
+    }
+
+    /* Footer */
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 2px solid #e2e8f0;
+    }
+
+    .footer-left {
+      font-size: 10px;
+      color: #94a3b8;
+    }
+
+    .footer-right {
+      font-size: 11px;
+      color: #64748b;
+      font-weight: 600;
+    }
+
+    .page-number {
+      background: #0ea5e9;
+      color: white;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    @media print {
+      body { background: white; padding: 0; }
+      .page { box-shadow: none; margin: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page">
+  <!-- Header -->
+  <div class="header">
+    <span class="level-badge">Level 1: Below Grade Level</span>
+    <span class="grade-badge">Simplified Reading</span>
+  </div>
+
+  <!-- Title -->
+  <h1 class="title">Big Storms Over the Sea</h1>
+
+  <!-- Main Content -->
+  <div class="content">
+    <!-- Passage Column -->
+    <div class="passage-column">
+      <div class="passage-text">
+        <p>Have you ever seen a big storm? A storm that forms over the warm sea is very strong. It has fast winds. It has lots of rain.</p>
+
+        <p>How does this kind of storm start? The sun heats the sea. The water gets very warm. Hot, wet air goes up. The air starts to spin. More air joins in. The spin gets faster and faster.</p>
+
+        <p>The storm has parts. The middle is calm. It is called the eye. But the part next to the eye is bad. The wind is very fast there. The rain is very hard.</p>
+
+        <p>We rate these storms from 1 to 5. A 1 is not as bad. A 5 is the worst. A 5 has winds that go over 157 miles in one hour. It can break homes. It can knock down trees.</p>
+
+        <p>These storms are not safe. The rain can cause too much water on the land. The sea can push up onto the shore. This water can be 20 feet high.</p>
+
+        <p>People get ready in many ways. They put wood on their windows. They get food and water. Some people leave and go to a safe place.</p>
+
+        <p>People who study the sky watch these storms. They warn us when a storm is near. This helps us stay safe.</p>
+      </div>
+
+      <!-- Vocabulary Box -->
+      <div class="vocab-box">
+        <h4>Key Words</h4>
+        <div class="vocab-list">
+          <span class="vocab-word">eye</span>
+          <span class="vocab-word">storm</span>
+          <span class="vocab-word">wind</span>
+          <span class="vocab-word">spin</span>
+          <span class="vocab-word">shore</span>
+          <span class="vocab-word">warn</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Illustration Column -->
+    <div class="illustration-column">
+      <div class="illustration">
+        <img src="formation.png" alt="How storms form">
+        <div class="illustration-caption">How Big Storms Form</div>
+      </div>
+      <div class="illustration">
+        <img src="structure.png" alt="Parts of a storm">
+        <div class="illustration-caption">Parts of the Storm</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="footer-left">© Clario Resources</span>
+    <span class="footer-right">Hurricanes: Differentiated Reading Passages</span>
+    <span class="page-number">1</span>
+  </div>
+</div>
+
+</body>
+</html>

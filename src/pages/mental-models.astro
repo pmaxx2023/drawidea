@@ -1,0 +1,125 @@
+---
+import '../styles/global.css';
+
+const models = [
+  {
+    id: 'first-principles',
+    name: 'First Principles Thinking',
+    description: 'Break down complex problems to fundamental truths, then rebuild from scratch.',
+    day: 1,
+  },
+  {
+    id: 'inversion',
+    name: 'Inversion',
+    description: 'Instead of asking "How do I succeed?", ask "What would guarantee failure?"',
+    day: 2,
+  },
+  {
+    id: 'second-order-thinking',
+    name: 'Second-Order Thinking',
+    description: 'First-order: "What happens next?" Second-order: "And then what?"',
+    day: 3,
+  },
+  {
+    id: 'pareto-principle',
+    name: 'Pareto Principle (80/20)',
+    description: '80% of results come from 20% of efforts. Find your vital few.',
+    day: 4,
+  },
+  {
+    id: 'circle-of-competence',
+    name: 'Circle of Competence',
+    description: 'Know the boundaries of what you truly understand vs what you think you understand.',
+    day: 5,
+  },
+];
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>100 Mental Models Visualized - Clario</title>
+    <meta name="description" content="Visual explanations of the world's most powerful mental models. A new model every day." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  </head>
+  <body class="min-h-screen bg-gray-950 text-white">
+
+    <header class="fixed top-0 left-0 right-0 z-50 bg-gray-950/95 backdrop-blur-sm border-b border-gray-800">
+      <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+        <a href="/" class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-orange-500 flex items-center justify-center" style="transform:rotate(-3deg)">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+            </svg>
+          </div>
+          <span class="text-2xl font-extrabold">Clario</span>
+        </a>
+        <a href="/#create" class="bg-orange-500 hover:bg-orange-600 text-white py-3 px-6 rounded-xl font-bold transition-colors">
+          Create Your Own
+        </a>
+      </div>
+    </header>
+
+    <section class="pt-32 pb-12 px-6">
+      <div class="max-w-4xl mx-auto text-center">
+        <p class="text-orange-500 font-bold mb-2">A Clario Series</p>
+        <h1 class="text-5xl font-extrabold mb-4">
+          100 Mental Models
+          <span class="bg-gradient-to-r from-blue-500 to-orange-500 bg-clip-text text-transparent">Visualized</span>
+        </h1>
+        <p class="text-xl text-gray-400 mb-2">The world's most powerful thinking tools, explained visually.</p>
+        <p class="text-gray-500">{models.length} of 100 complete</p>
+      </div>
+    </section>
+
+    <section class="py-8 px-6">
+      <div class="max-w-6xl mx-auto">
+        <div class="grid gap-8">
+          {models.map((model) => (
+            <div class="bg-gray-900/50 rounded-2xl overflow-hidden border border-gray-800">
+              <div class="p-6 border-b border-gray-800">
+                <div class="flex items-center gap-3 mb-2">
+                  <span class="bg-blue-500/20 text-blue-400 text-sm font-bold px-3 py-1 rounded-full">Day {model.day}</span>
+                  <h2 class="text-2xl font-bold text-white">{model.name}</h2>
+                </div>
+                <p class="text-gray-400">{model.description}</p>
+              </div>
+              <img
+                src={`/mental-models/${model.id}.png`}
+                alt={model.name}
+                class="w-full"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <section class="py-16 px-6 bg-gray-900">
+      <div class="max-w-3xl mx-auto text-center">
+        <h2 class="text-3xl font-extrabold mb-4 text-white">Want to visualize your own concept?</h2>
+        <p class="text-gray-400 mb-8">Clario turns complex ideas into clear visual explanations in seconds.</p>
+        <a
+          href="/#create"
+          class="inline-flex items-center gap-3 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 px-8 rounded-xl transition-all text-xl font-bold shadow-xl shadow-blue-500/30 hover:shadow-blue-500/50"
+        >
+          Try Clario Free
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6"></path>
+          </svg>
+        </a>
+      </div>
+    </section>
+
+    <footer class="py-8 px-6 bg-gray-950 border-t border-gray-800">
+      <div class="max-w-4xl mx-auto text-center">
+        <p class="text-gray-400 text-lg font-bold mb-1">getclario.net</p>
+        <p class="text-gray-500 text-sm">We turn complexity into clarity</p>
+      </div>
+    </footer>
+
+  </body>
+</html>

@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Hurricanes: Differentiated Reading Passages</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      line-height: 1.6;
+      color: #1a1a1a;
+      background: white;
+    }
+
+    .page {
+      width: 8.5in;
+      min-height: 11in;
+      padding: 0.75in;
+      margin: 0 auto;
+      background: white;
+      page-break-after: always;
+    }
+
+    .page:last-child { page-break-after: avoid; }
+
+    /* Cover Page */
+    .cover {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-height: 10in;
+    }
+
+    .cover h1 {
+      font-size: 36px;
+      color: #0369a1;
+      margin-bottom: 8px;
+    }
+
+    .cover .subtitle {
+      font-size: 20px;
+      color: #64748b;
+      margin-bottom: 40px;
+    }
+
+    .cover .features {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin: 40px 0;
+      text-align: left;
+    }
+
+    .cover .feature {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+
+    .cover .feature .check {
+      color: #22c55e;
+      font-weight: bold;
+    }
+
+    .cover .grade-badge {
+      background: #0369a1;
+      color: white;
+      padding: 8px 24px;
+      border-radius: 20px;
+      font-weight: 600;
+      margin-top: 20px;
+    }
+
+    /* Passage Pages */
+    .passage-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 3px solid #0369a1;
+    }
+
+    .level-badge {
+      background: #0369a1;
+      color: white;
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .lexile-badge {
+      background: #f1f5f9;
+      color: #475569;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .passage-title {
+      font-size: 24px;
+      color: #0f172a;
+      margin-bottom: 20px;
+    }
+
+    .passage-text {
+      font-size: 14px;
+      line-height: 1.8;
+      text-align: justify;
+    }
+
+    .passage-text p {
+      margin-bottom: 16px;
+      text-indent: 2em;
+    }
+
+    .passage-text p:first-child {
+      text-indent: 0;
+    }
+
+    /* Illustration Pages */
+    .illustration-page {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .illustration-page img {
+      max-width: 100%;
+      max-height: 8in;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .illustration-page .caption {
+      margin-top: 16px;
+      font-size: 14px;
+      color: #64748b;
+      text-align: center;
+    }
+
+    /* Questions Page */
+    .questions-header {
+      font-size: 24px;
+      color: #0369a1;
+      margin-bottom: 24px;
+      padding-bottom: 12px;
+      border-bottom: 3px solid #0369a1;
+    }
+
+    .question {
+      margin-bottom: 28px;
+    }
+
+    .question-number {
+      font-weight: 700;
+      color: #0369a1;
+      margin-bottom: 4px;
+    }
+
+    .question-type {
+      font-size: 12px;
+      color: #64748b;
+      font-style: italic;
+      margin-bottom: 8px;
+    }
+
+    .question-text {
+      font-size: 14px;
+    }
+
+    .answer-lines {
+      margin-top: 12px;
+      border-bottom: 1px solid #cbd5e1;
+      height: 24px;
+    }
+
+    /* Answer Key */
+    .answer-key .answer {
+      margin-bottom: 24px;
+      padding: 16px;
+      background: #f8fafc;
+      border-radius: 8px;
+      border-left: 4px solid #22c55e;
+    }
+
+    .answer-key .answer-number {
+      font-weight: 700;
+      color: #0369a1;
+      margin-bottom: 8px;
+    }
+
+    .answer-key .answer-text {
+      font-size: 13px;
+    }
+
+    /* Teacher Notes */
+    .teacher-notes h2 {
+      font-size: 20px;
+      color: #0369a1;
+      margin: 24px 0 12px 0;
+    }
+
+    .teacher-notes table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0;
+      font-size: 13px;
+    }
+
+    .teacher-notes th, .teacher-notes td {
+      border: 1px solid #e2e8f0;
+      padding: 10px;
+      text-align: left;
+    }
+
+    .teacher-notes th {
+      background: #0369a1;
+      color: white;
+    }
+
+    .teacher-notes tr:nth-child(even) {
+      background: #f8fafc;
+    }
+
+    .standards-list {
+      font-size: 13px;
+    }
+
+    .standards-list li {
+      margin-bottom: 8px;
+      margin-left: 20px;
+    }
+
+    .footer {
+      position: absolute;
+      bottom: 0.5in;
+      left: 0;
+      right: 0;
+      text-align: center;
+      font-size: 11px;
+      color: #94a3b8;
+    }
+
+    @media print {
+      .page { margin: 0; box-shadow: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- COVER PAGE -->
+<div class="page cover">
+  <h1>Hurricanes</h1>
+  <p class="subtitle">Differentiated Reading Passages</p>
+  <p style="font-size: 16px; color: #64748b;">5 Reading Levels for Grades 3-8</p>
+
+  <div class="features">
+    <div class="feature"><span class="check">✓</span> 5 Reading Levels (Below to Advanced)</div>
+    <div class="feature"><span class="check">✓</span> 5 Educational Illustrations</div>
+    <div class="feature"><span class="check">✓</span> Comprehension Questions</div>
+    <div class="feature"><span class="check">✓</span> Complete Answer Key</div>
+    <div class="feature"><span class="check">✓</span> Teacher Notes</div>
+    <div class="feature"><span class="check">✓</span> Standards Aligned</div>
+  </div>
+
+  <div class="grade-badge">Grades 3-8</div>
+
+  <p style="margin-top: 60px; font-size: 12px; color: #94a3b8;">© 2024 | For classroom use only</p>
+</div>
+
+<!-- LEVEL 1 PASSAGE -->
+<div class="page">
+  <div class="passage-header">
+    <span class="level-badge">Level 1: Below Grade Level</span>
+    <span class="lexile-badge">Simplified</span>
+  </div>
+  <h2 class="passage-title">Hurricanes: Big Storms from the Sea</h2>
+  <div class="passage-text">
+    <p>A hurricane is a very big storm. It forms over warm ocean water. Hurricanes have strong winds and heavy rain.</p>
+    <p>How does a hurricane form? First, the sun heats the ocean. The water must be at least 80 degrees. Warm, wet air rises up from the water. As it rises, it starts to spin. More and more air joins in. The spinning gets faster. When the winds reach 74 miles per hour, it becomes a hurricane.</p>
+    <p>Hurricanes have different parts. The center is called the eye. The eye is calm and quiet. But the area around the eye is the worst part. This is called the eyewall. It has the strongest winds and rain.</p>
+    <p>Scientists put hurricanes into groups. They use numbers from 1 to 5. A Category 1 storm is the weakest. A Category 5 storm is the strongest. Category 5 hurricanes have winds over 157 miles per hour. They can destroy buildings and knock down trees.</p>
+    <p>Hurricanes are dangerous. They bring flooding from heavy rain. They also cause storm surge. This is when ocean water pushes onto land. Storm surge can be 20 feet high or more.</p>
+    <p>People prepare for hurricanes in many ways. They board up windows. They buy food and water. Sometimes they leave their homes and go somewhere safe. This is called evacuation.</p>
+    <p>Scientists track hurricanes using satellites and planes. They try to warn people before the storm hits. This gives families time to get ready and stay safe.</p>
+  </div>
+</div>
+
+<!-- LEVEL 2 PASSAGE -->
+<div class="page">
+  <div class="passage-header">
+    <span class="level-badge">Level 2: Approaching</span>
+    <span class="lexile-badge">Grade 3-4</span>
+  </div>
+  <h2 class="passage-title">Hurricanes: Nature's Most Powerful Storms</h2>
+  <div class="passage-text">
+    <p>A hurricane is one of nature's most powerful storms. These massive weather systems form over warm ocean water and can cause terrible damage when they reach land.</p>
+    <p>Hurricanes begin when several conditions come together. The ocean water must be at least 80 degrees Fahrenheit. Warm, moist air rises from the ocean surface. As this air rises, it begins to rotate because of Earth's spin. More warm air rushes in to take its place. This cycle continues, and the storm grows stronger. When wind speeds reach 74 miles per hour, the storm officially becomes a hurricane.</p>
+    <p>Every hurricane has a similar structure. At the very center is the eye, a calm area with light winds and clear skies. Surrounding the eye is the eyewall, which contains the most violent winds and heaviest rainfall. Spiral bands of thunderstorms extend outward from the eyewall for hundreds of miles.</p>
+    <p>The Saffir-Simpson Scale measures hurricane strength using categories from 1 to 5. Category 1 hurricanes have winds between 74 and 95 miles per hour. Category 5 hurricanes, the most destructive, have winds exceeding 157 miles per hour. These extreme storms can level buildings and cause catastrophic damage.</p>
+    <p>Hurricanes threaten coastal areas in multiple ways. Heavy rainfall causes inland flooding. Storm surge occurs when hurricane winds push ocean water onto shore. A major hurricane's storm surge can reach 20 feet or higher, flooding entire neighborhoods.</p>
+    <p>Communities in hurricane zones take preparation seriously. Residents stock up on supplies, secure their homes, and follow evacuation orders when necessary. Meanwhile, meteorologists use satellites, radar, and hurricane hunter aircraft to track these storms and provide life-saving warnings.</p>
+  </div>
+</div>
+
+<!-- LEVEL 3 PASSAGE -->
+<div class="page">
+  <div class="passage-header">
+    <span class="level-badge">Level 3: On Grade Level</span>
+    <span class="lexile-badge">Grade 4-5</span>
+  </div>
+  <h2 class="passage-title">Hurricanes: Understanding Earth's Mightiest Storms</h2>
+  <div class="passage-text">
+    <p>Hurricanes rank among the most powerful and destructive natural phenomena on Earth. These rotating storm systems can span hundreds of miles and unleash devastating winds, torrential rainfall, and deadly storm surge on coastal communities.</p>
+    <p>The formation of a hurricane requires specific atmospheric and oceanic conditions. Ocean water temperatures must reach at least 80 degrees Fahrenheit to a depth of about 150 feet. When warm, humid air rises rapidly from the ocean surface, it creates an area of low pressure. Surrounding air spirals inward to fill this void, and the Coriolis effect—caused by Earth's rotation—sets the system spinning. As the cycle of evaporation and condensation continues, the storm intensifies. Once sustained winds exceed 74 miles per hour, meteorologists classify the system as a hurricane.</p>
+    <p>The anatomy of a hurricane reveals its organized structure. The eye, typically 20 to 40 miles in diameter, sits at the storm's center. Despite the chaos surrounding it, the eye remains relatively calm with minimal clouds and light winds. The eyewall immediately surrounding the eye contains the hurricane's most ferocious conditions—the strongest winds, heaviest precipitation, and most intense updrafts. Extending outward from the eyewall, spiral rainbands produce additional thunderstorms and tornadoes.</p>
+    <p>Scientists categorize hurricanes using the Saffir-Simpson Hurricane Wind Scale. Category 1 storms bring dangerous winds of 74 to 95 miles per hour, while Category 5 hurricanes generate catastrophic winds exceeding 157 miles per hour. Each category increase represents significantly greater destructive potential.</p>
+    <p>The hazards associated with hurricanes extend beyond wind damage. Storm surge—the abnormal rise of seawater driven ashore by the storm's winds—historically causes the greatest loss of life. Additionally, hurricanes produce tremendous rainfall, often dropping 6 to 12 inches or more, which triggers severe inland flooding.</p>
+    <p>Preparation and early warning systems save countless lives each hurricane season. The National Hurricane Center monitors tropical weather using satellites, reconnaissance aircraft, and computer models to forecast storm tracks and intensity.</p>
+  </div>
+</div>
+
+<!-- LEVEL 4 PASSAGE -->
+<div class="page">
+  <div class="passage-header">
+    <span class="level-badge">Level 4: Above Grade Level</span>
+    <span class="lexile-badge">Grade 6-7</span>
+  </div>
+  <h2 class="passage-title">Hurricanes: The Science Behind Nature's Heat Engines</h2>
+  <div class="passage-text" style="font-size: 13px;">
+    <p>Hurricanes represent some of the most awe-inspiring and destructive meteorological phenomena on our planet. These immense rotating storm systems function as massive heat engines that transfer thermal energy from tropical oceans to the atmosphere, unleashing tremendous destructive force in the process.</p>
+    <p>The genesis of a hurricane depends upon a precise combination of atmospheric and oceanic conditions. Sea surface temperatures must reach approximately 80 degrees Fahrenheit to a substantial depth, typically around 150 feet, to provide sufficient thermal energy. When solar radiation heats tropical waters, evaporation accelerates dramatically. This warm, moisture-laden air rises rapidly, creating a center of low atmospheric pressure. As surrounding air rushes inward to equalize the pressure differential, the Coriolis effect—a consequence of Earth's rotation—deflects this air movement, initiating the characteristic counterclockwise rotation observed in Northern Hemisphere hurricanes.</p>
+    <p>Structurally, a mature hurricane exhibits remarkable organization. The eye—generally spanning 20 to 40 miles in diameter—occupies the storm's rotational center. Paradoxically, this region experiences calm conditions, minimal cloud cover, and occasionally clear skies. Encircling the eye, the eyewall constitutes the most violent portion of the hurricane, characterized by towering cumulonimbus clouds, maximum sustained winds, and the most intense precipitation rates.</p>
+    <p>Meteorologists employ the Saffir-Simpson Hurricane Wind Scale to communicate potential hurricane impacts. While Category 1 hurricanes (74-95 mph) produce some structural damage, Category 5 hurricanes (exceeding 157 mph) cause catastrophic destruction—demolishing residential structures, uprooting mature trees, and rendering impacted areas uninhabitable for extended periods.</p>
+    <p>Storm surge constitutes the deadliest hurricane hazard, responsible for approximately half of all hurricane-related fatalities historically. This phenomenon occurs when powerful hurricane winds drive ocean water toward the coastline, producing a dome of seawater that can exceed 20 feet above normal tide levels.</p>
+    <p>Modern hurricane forecasting has dramatically improved public safety through technological advancement. The National Hurricane Center synthesizes data from geostationary satellites, Doppler radar networks, oceanic buoys, and specialized reconnaissance aircraft.</p>
+  </div>
+</div>
+
+<!-- LEVEL 5 PASSAGE -->
+<div class="page">
+  <div class="passage-header">
+    <span class="level-badge">Level 5: Advanced</span>
+    <span class="lexile-badge">Grade 8+</span>
+  </div>
+  <h2 class="passage-title">Hurricanes: Thermodynamic Giants and Their Societal Implications</h2>
+  <div class="passage-text" style="font-size: 12px; line-height: 1.7;">
+    <p>Hurricanes, known as typhoons in the western Pacific and cyclones in the Indian Ocean, constitute Earth's most energetically powerful atmospheric phenomena. These massive rotating storm systems function as thermodynamic engines of extraordinary efficiency, extracting heat energy from tropical ocean waters and converting it into kinetic energy manifested through destructive winds, torrential precipitation, and catastrophic storm surge.</p>
+    <p>The thermodynamic processes underlying hurricane formation require a convergence of specific environmental conditions. Sea surface temperatures must attain approximately 26.5 degrees Celsius (roughly 80 degrees Fahrenheit) to a depth of at least 50 meters, providing the requisite thermal reservoir. When intense solar radiation heats equatorial waters, rapid evaporation transfers both moisture and latent heat to the overlying atmosphere. This warm, humid air ascends buoyantly, establishing a region of pronounced low pressure at the surface. The resulting pressure gradient accelerates surrounding air toward this low-pressure center, while the Coriolis force induces cyclonic rotation.</p>
+    <p>Mature hurricanes exhibit distinctive structural characteristics reflecting the underlying dynamics. The eye—typically 30 to 65 kilometers in diameter—marks the rotational axis where subsiding air suppresses cloud formation. Encircling the eye, the eyewall comprises towering cumulonimbus convection reaching the tropopause, maximum tangential winds, and precipitation rates potentially exceeding 100 millimeters per hour.</p>
+    <p>The Saffir-Simpson Hurricane Wind Scale, while widely utilized for public communication, captures only the wind-related hazard dimension. Storm surge constitutes the deadliest hurricane hazard, responsible for approximately half of all hurricane-related mortality historically.</p>
+    <p>Climate change projections suggest concerning modifications to future hurricane characteristics. While overall tropical cyclone frequency may remain stable, the proportion achieving major hurricane intensity appears likely to increase as oceanic heat content rises. These evolving threats necessitate continued investment in forecasting capabilities and resilient infrastructure design.</p>
+  </div>
+</div>
+
+<!-- ILLUSTRATION PAGES -->
+<div class="page illustration-page">
+  <img src="formation.png" alt="How Hurricanes Form">
+  <p class="caption">Figure 1: How Hurricanes Form</p>
+</div>
+
+<div class="page illustration-page">
+  <img src="structure.png" alt="Parts of a Hurricane">
+  <p class="caption">Figure 2: Parts of a Hurricane</p>
+</div>
+
+<div class="page illustration-page">
+  <img src="categories.png" alt="Hurricane Categories 1-5">
+  <p class="caption">Figure 3: Hurricane Categories 1-5 (Saffir-Simpson Scale)</p>
+</div>
+
+<div class="page illustration-page">
+  <img src="storm-surge.png" alt="What is Storm Surge">
+  <p class="caption">Figure 4: What is Storm Surge?</p>
+</div>
+
+<div class="page illustration-page">
+  <img src="preparation.png" alt="Hurricane Safety and Preparation">
+  <p class="caption">Figure 5: Hurricane Safety & Preparation</p>
+</div>
+
+<!-- COMPREHENSION QUESTIONS -->
+<div class="page">
+  <h2 class="questions-header">Comprehension Questions</h2>
+  <p style="font-size: 13px; color: #64748b; margin-bottom: 24px;">Use these questions with any reading level. Answer in complete sentences.</p>
+
+  <div class="question">
+    <p class="question-number">Question 1</p>
+    <p class="question-type">Text-Based / Literal Comprehension</p>
+    <p class="question-text">What ocean water temperature is needed for a hurricane to form?</p>
+    <div class="answer-lines"></div>
+    <div class="answer-lines"></div>
+  </div>
+
+  <div class="question">
+    <p class="question-number">Question 2</p>
+    <p class="question-type">Vocabulary in Context</p>
+    <p class="question-text">What is the "eye" of a hurricane, and how is it different from the rest of the storm?</p>
+    <div class="answer-lines"></div>
+    <div class="answer-lines"></div>
+    <div class="answer-lines"></div>
+  </div>
+
+  <div class="question">
+    <p class="question-number">Question 3</p>
+    <p class="question-type">Inferential</p>
+    <p class="question-text">Why do you think people are sometimes surprised by how calm the eye of a hurricane is?</p>
+    <div class="answer-lines"></div>
+    <div class="answer-lines"></div>
+    <div class="answer-lines"></div>
+  </div>
+
+  <div class="question">
+    <p class="question-number">Question 4</p>
+    <p class="question-type">Text Structure / Author's Purpose</p>
+    <p class="question-text">The passage describes hurricane categories from 1 to 5. Why do you think scientists created this rating system?</p>
+    <div class="answer-lines"></div>
+    <div class="answer-lines"></div>
+    <div class="answer-lines"></div>
+  </div>
+
+  <div class="question">
+    <p class="question-number">Question 5</p>
+    <p class="question-type">Critical Thinking / Text-to-World</p>
+    <p class="question-text">If you lived in a coastal area that was in the path of an approaching hurricane, what are three things you would do to prepare? Use information from the passage to support your answer.</p>
+    <div class="answer-lines"></div>
+    <div class="answer-lines"></div>
+    <div class="answer-lines"></div>
+    <div class="answer-lines"></div>
+  </div>
+</div>
+
+<!-- ANSWER KEY -->
+<div class="page answer-key">
+  <h2 class="questions-header">Answer Key</h2>
+
+  <div class="answer">
+    <p class="answer-number">Question 1: Text-Based</p>
+    <p class="answer-text">The ocean water must be at least 80 degrees Fahrenheit (or approximately 26.5 degrees Celsius) for a hurricane to form.</p>
+  </div>
+
+  <div class="answer">
+    <p class="answer-number">Question 2: Vocabulary in Context</p>
+    <p class="answer-text">The eye is the center of the hurricane. It is calm and quiet with light winds and often clear skies. This is very different from the rest of the storm, especially the eyewall around it, which has the strongest winds and heaviest rain.</p>
+  </div>
+
+  <div class="answer">
+    <p class="answer-number">Question 3: Inferential</p>
+    <p class="answer-text">Acceptable responses: People expect the center of a dangerous storm to be the most dangerous part; The eyewall right before the eye passes is extremely violent, so the sudden calm is unexpected; People might think the storm is over when the eye passes; It seems contradictory that the middle of such a powerful storm could be peaceful.</p>
+  </div>
+
+  <div class="answer">
+    <p class="answer-number">Question 4: Text Structure</p>
+    <p class="answer-text">Acceptable responses: To help people understand how dangerous a storm is; To communicate quickly to the public about the threat level; To help emergency managers decide whether to order evacuations; To compare different hurricanes and track how they strengthen or weaken.</p>
+  </div>
+
+  <div class="answer">
+    <p class="answer-number">Question 5: Critical Thinking</p>
+    <p class="answer-text">Students should include three preparation steps from the passage: Board up windows; Stock up on food and water; Evacuate if ordered; Follow weather updates; Have an emergency plan; Move to higher ground; Secure outdoor objects. Answers should connect to specific text evidence.</p>
+  </div>
+</div>
+
+<!-- TEACHER NOTES -->
+<div class="page teacher-notes">
+  <h2 class="questions-header">Teacher Notes</h2>
+
+  <h2>Reading Level Guide</h2>
+  <table>
+    <tr>
+      <th>Level</th>
+      <th>Reading Level</th>
+      <th>Word Count</th>
+      <th>Best For</th>
+    </tr>
+    <tr>
+      <td>1</td>
+      <td>Below Grade Level</td>
+      <td>~220 words</td>
+      <td>Intervention, SPED, ELL newcomers</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td>Approaching (Gr 3-4)</td>
+      <td>~280 words</td>
+      <td>Below grade level, ELL intermediate</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td>On Grade Level (Gr 4-5)</td>
+      <td>~350 words</td>
+      <td>On grade level readers</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td>Above Grade Level (Gr 6-7)</td>
+      <td>~420 words</td>
+      <td>Above grade level, 6th grade on level</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td>Advanced (Gr 8+)</td>
+      <td>~500 words</td>
+      <td>Advanced readers, enrichment</td>
+    </tr>
+  </table>
+
+  <h2>Standards Alignment</h2>
+  <ul class="standards-list">
+    <li><strong>CCSS.ELA-LITERACY.RI.4-6.1</strong> — Cite textual evidence to support analysis</li>
+    <li><strong>CCSS.ELA-LITERACY.RI.4-6.2</strong> — Determine main idea and supporting details</li>
+    <li><strong>CCSS.ELA-LITERACY.RI.4-6.4</strong> — Determine meaning of academic vocabulary</li>
+    <li><strong>CCSS.ELA-LITERACY.RI.4-6.5</strong> — Analyze text structure</li>
+    <li><strong>NGSS 3-ESS2-1 / MS-ESS2-5</strong> — Weather and climate patterns</li>
+  </ul>
+
+  <h2>Suggested Use</h2>
+  <ul class="standards-list">
+    <li>Assign different levels to students based on reading ability while maintaining whole-class discussion of the same content</li>
+    <li>Use illustrations as pre-reading vocabulary builders or post-reading review</li>
+    <li>Comprehension questions work across all levels — choose questions appropriate for your students</li>
+    <li>Pair with hands-on activities: hurricane tracking maps, storm surge demonstrations, emergency kit planning</li>
+  </ul>
+</div>
+
+</body>
+</html>

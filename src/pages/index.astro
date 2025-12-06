@@ -1,0 +1,173 @@
+---
+import "../styles/global.css";
+---
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Clario</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-gray-950 text-white">
+<header class="fixed top-0 left-0 right-0 z-50 bg-gray-950/95 border-b border-gray-800">
+<div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-orange-500 flex items-center justify-center" style="transform:rotate(-3deg)">
+<svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
+<path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+</svg>
+</div>
+<span class="text-2xl font-extrabold">Clario</span>
+</div>
+<a href="#create" class="bg-orange-500 text-white py-3 px-6 rounded-xl font-bold">Create</a>
+</div>
+</header>
+<section class="pt-32 pb-6 px-6">
+<div class="max-w-5xl mx-auto text-center">
+<h1 class="text-4xl font-bold mb-4">Visual explanations in seconds</h1>
+<img src="/hero-before-after.png" alt="Hero" class="w-full rounded-2xl" />
+</div>
+</section>
+<section class="py-12 px-6">
+<div class="max-w-6xl mx-auto">
+<h2 class="text-2xl font-bold text-center mb-2">One concept, many styles</h2>
+<p class="text-gray-400 text-center mb-8">See how "How WiFi Works" looks in different visual styles</p>
+<div class="grid md:grid-cols-4 gap-4">
+<a href="#create" class="group block rounded-xl overflow-hidden border border-gray-800 hover:border-gray-600 transition-all">
+<img src="/styles/wifi-xplane.png" alt="Whiteboard style" class="w-full group-hover:scale-105 transition-transform" />
+<div class="p-3 bg-gray-900"><p class="text-sm font-medium">Whiteboard</p></div>
+</a>
+<a href="#create" class="group block rounded-xl overflow-hidden border border-gray-800 hover:border-gray-600 transition-all">
+<img src="/styles/wifi-tron.png" alt="Tron style" class="w-full group-hover:scale-105 transition-transform" />
+<div class="p-3 bg-gray-900"><p class="text-sm font-medium">Tron</p></div>
+</a>
+<a href="#create" class="group block rounded-xl overflow-hidden border border-gray-800 hover:border-gray-600 transition-all">
+<img src="/styles/wifi-editorial.png" alt="Editorial style" class="w-full group-hover:scale-105 transition-transform" />
+<div class="p-3 bg-gray-900"><p class="text-sm font-medium">Editorial</p></div>
+</a>
+<a href="#create" class="group block rounded-xl overflow-hidden border border-gray-800 hover:border-gray-600 transition-all">
+<img src="/styles/wifi-infographic.png" alt="Infographic style" class="w-full group-hover:scale-105 transition-transform" />
+<div class="p-3 bg-gray-900"><p class="text-sm font-medium">Infographic</p></div>
+</a>
+</div>
+<p class="text-center mt-6"><a href="/styles" class="text-blue-400 hover:text-blue-300">View all 8 styles &rarr;</a></p>
+</div>
+</section>
+<section id="create" class="py-12 px-6 bg-gray-900">
+<div class="max-w-3xl mx-auto">
+<h2 class="text-3xl font-bold text-center mb-8">Create Your Clario</h2>
+<textarea id="concept" rows="4" placeholder="Describe what you want..." class="w-full bg-gray-800 border border-gray-700 rounded-xl p-4 text-white mb-4"></textarea>
+<div class="mb-4">
+<label class="block text-gray-400 text-sm mb-2">Visual Style</label>
+<select id="style-select" class="w-full bg-gray-800 border border-gray-700 rounded-xl p-4 text-white">
+<option value="xplane">Whiteboard</option>
+<option value="tron">Tron Dark Whiteboard</option>
+<option value="minimal-line">Minimal Line Art</option>
+<option value="woodcut">Woodcut Print</option>
+<option value="risograph">Risograph Editorial</option>
+<option value="editorial">Magazine Editorial</option>
+<option value="roadmap">Technical Roadmap</option>
+<option value="infographic">Modern Infographic</option>
+</select>
+</div>
+<div id="email-gate" class="bg-gray-800 rounded-xl p-6 border border-gray-700 mb-4">
+<p class="text-white font-bold text-center mb-4">Early Access</p>
+<input type="text" id="user-name" placeholder="Your name" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white mb-3" />
+<input type="email" id="user-email" placeholder="Email" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white mb-3" />
+<input type="text" id="invite-code" placeholder="Invite code" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white font-mono mb-3" />
+<button id="unlock-btn" class="w-full bg-orange-500 text-white py-4 rounded-xl font-bold">Unlock Access</button>
+<p id="email-error" class="text-red-400 text-sm mt-2 hidden text-center"></p>
+</div>
+<button id="generate-btn" class="hidden w-full bg-blue-500 text-white py-4 rounded-xl font-bold">Create Clario</button>
+<div id="loading-section" class="hidden mt-8">
+<div class="bg-gray-800 rounded-xl p-10 text-center border border-gray-700">
+<div class="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+<p id="loading-status" class="text-white text-lg font-bold">Analyzing...</p>
+<div class="mt-4 max-w-xs mx-auto">
+<div class="h-2 bg-gray-700 rounded-full overflow-hidden">
+<div id="progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-orange-500 rounded-full transition-all duration-500" style="width:0%"></div>
+</div>
+</div>
+</div>
+</div>
+<div id="result-section" class="hidden mt-8"><img id="result-image" class="w-full rounded-xl" /><a id="download-btn" class="block mt-4 bg-blue-500 text-white py-4 rounded-xl text-center font-bold">Download</a></div>
+<div id="error-section" class="hidden mt-8 text-center text-red-400"><p id="error-message">Error</p><button id="retry-btn" class="mt-2 bg-red-500 text-white py-2 px-4 rounded">Retry</button></div>
+</div>
+</section>
+<script>
+const VALID_CODE = "1001-01";
+const gate = document.getElementById("email-gate");
+const nameIn = document.getElementById("user-name");
+const emailIn = document.getElementById("user-email");
+const codeIn = document.getElementById("invite-code");
+const unlockBtn = document.getElementById("unlock-btn");
+const err = document.getElementById("email-error");
+const genBtn = document.getElementById("generate-btn");
+const concept = document.getElementById("concept");
+const loading = document.getElementById("loading-section");
+const result = document.getElementById("result-section");
+const errSec = document.getElementById("error-section");
+const resImg = document.getElementById("result-image");
+const dlBtn = document.getElementById("download-btn");
+const errMsg = document.getElementById("error-message");
+const retry = document.getElementById("retry-btn");
+
+if(localStorage.getItem("clario_unlocked")==="true"){gate.classList.add("hidden");genBtn.classList.remove("hidden");}
+
+unlockBtn.onclick = async () => {
+  const n=nameIn.value.trim(), e=emailIn.value.trim(), c=codeIn.value.trim();
+  if(!n){err.textContent="Enter name";err.classList.remove("hidden");return;}
+  if(!e||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)){err.textContent="Valid email required";err.classList.remove("hidden");return;}
+  if(c!==VALID_CODE){err.textContent="Invalid invite code";err.classList.remove("hidden");return;}
+  err.classList.add("hidden");
+  try{
+    await fetch("/api/subscribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:e,name:n,inviteCode:c})});
+    localStorage.setItem("clario_unlocked","true");
+    gate.classList.add("hidden");genBtn.classList.remove("hidden");
+  }catch(x){err.textContent=x.message;err.classList.remove("hidden");}
+};
+
+const styleSelect = document.getElementById("style-select");
+const urlStyle = new URLSearchParams(location.search).get("style");
+if(urlStyle) styleSelect.value = urlStyle;
+const statusEl = document.getElementById("loading-status");
+const progressBar = document.getElementById("progress-bar");
+const stages = ["Analyzing concept...", "Composing layout...", "Rendering visuals...", "Finalizing..."];
+let stageIdx = 0, progressInt = null;
+
+function startProgress() {
+  stageIdx = 0;
+  statusEl.textContent = stages[0];
+  progressBar.style.width = "10%";
+  progressInt = setInterval(() => {
+    stageIdx++;
+    if (stageIdx < stages.length) {
+      statusEl.textContent = stages[stageIdx];
+      progressBar.style.width = (10 + stageIdx * 25) + "%";
+    }
+  }, 3000);
+}
+
+function stopProgress() {
+  clearInterval(progressInt);
+  progressBar.style.width = "100%";
+}
+
+async function gen(){
+  const c=concept.value.trim();if(!c)return alert("Describe something");
+  loading.classList.remove("hidden");result.classList.add("hidden");errSec.classList.add("hidden");
+  startProgress();
+  try{
+    const r=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({concept:c,style:styleSelect.value})});
+    if(!r.ok)throw new Error(await r.text());
+    const d=await r.json();resImg.src=d.imageUrl;dlBtn.href=d.imageUrl;
+    stopProgress();
+    loading.classList.add("hidden");result.classList.remove("hidden");
+  }catch(x){stopProgress();loading.classList.add("hidden");errMsg.textContent=x.message;errSec.classList.remove("hidden");}
+}
+genBtn.onclick=gen;retry.onclick=gen;
+</script>
+</body>
+</html>
