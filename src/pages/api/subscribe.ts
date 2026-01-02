@@ -1,40 +1,16 @@
 import type { APIRoute } from 'astro';
-import { put, list } from '@vercel/blob';
+import { createClient } from '@supabase/supabase-js';
 
-const SUBSCRIBERS_FILE = 'subscribers.json';
-
-async function getSubscribers(): Promise<Array<{ email: string; name: string; subscribedAt: string }>> {
-  try {
-    const { blobs } = await list({ prefix: SUBSCRIBERS_FILE });
-    if (blobs.length === 0) return [];
-
-    const response = await fetch(blobs[0].url);
-    return await response.json();
-  } catch {
-    return [];
-  }
-}
-
-async function saveSubscribers(subscribers: Array<{ email: string; name: string; subscribedAt: string }>) {
-  await put(SUBSCRIBERS_FILE, JSON.stringify(subscribers, null, 2), {
-    access: 'public',
-    addRandomSuffix: false,
-  });
-}
+const supabaseUrl = import.meta.env.SUPABASE_URL || process.env.SUPABASE_URL;
+const supabaseKey = import.meta.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabase = createClient(supabaseUrl!, supabaseKey!);
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const { email, name } = await request.json();
+    const { email, name, source } = await request.json();
 
     if (!email || typeof email !== 'string') {
       return new Response(JSON.stringify({ error: 'Email is required' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    if (!name || typeof name !== 'string') {
-      return new Response(JSON.stringify({ error: 'Name is required' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' }
       });
@@ -49,10 +25,15 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const normalizedEmail = email.toLowerCase().trim();
-    const subscribers = await getSubscribers();
 
     // Check for duplicate
-    if (subscribers.some(s => s.email === normalizedEmail)) {
+    const { data: existing } = await supabase
+      .from('subscribers')
+      .select('id')
+      .eq('email', normalizedEmail)
+      .single();
+
+    if (existing) {
       // Already subscribed, just return success
       return new Response(JSON.stringify({ success: true }), {
         headers: { 'Content-Type': 'application/json' },
@@ -60,18 +41,27 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     // Add new subscriber
-    subscribers.push({
-      email: normalizedEmail,
-      name: name.trim(),
-      subscribedAt: new Date().toISOString(),
-    });
+    const { error } = await supabase
+      .from('subscribers')
+      .insert({
+        email: normalizedEmail,
+        name: (name || 'Anonymous').trim(),
+        source: source || 'homepage',
+      });
 
-    await saveSubscribers(subscribers);
+    if (error) {
+      console.error('Supabase insert error:', error);
+      return new Response(
+        JSON.stringify({ error: 'Failed to subscribe' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
 
     console.log(JSON.stringify({
       event: 'new_subscriber',
       timestamp: new Date().toISOString(),
       email: normalizedEmail,
+      source: source || 'homepage',
     }));
 
     return new Response(JSON.stringify({ success: true }), {

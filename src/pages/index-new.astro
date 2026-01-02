@@ -1,0 +1,270 @@
+---
+import "../styles/global.css";
+import { createServerSupabaseClient, createAdminClient } from '../lib/supabase';
+
+const responseHeaders = new Headers();
+const supabase = createServerSupabaseClient(Astro.request, responseHeaders);
+const { data: { user } } = await supabase.auth.getUser();
+
+let userStatus = null;
+if (user?.email) {
+  const adminClient = createAdminClient();
+  const { data } = await adminClient
+    .from('users')
+    .select('generations_used, paid')
+    .eq('email', user.email.toLowerCase().trim())
+    .single();
+
+  if (data) {
+    const FREE_GENERATIONS = 3;
+    userStatus = {
+      email: user.email,
+      paid: data.paid,
+      generations_used: data.generations_used,
+      remaining: data.paid ? 'unlimited' : Math.max(0, FREE_GENERATIONS - data.generations_used)
+    };
+  } else {
+    userStatus = {
+      email: user.email,
+      paid: false,
+      generations_used: 0,
+      remaining: 3
+    };
+  }
+}
+
+responseHeaders.forEach((value, key) => {
+  Astro.response.headers.append(key, value);
+});
+---
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Clario - FHIR Diagrams in Seconds</title>
+<meta name="description" content="Generate professional FHIR diagrams instantly." />
+<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-white text-gray-900">
+
+<header class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200">
+<div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+<div class="flex items-center gap-3">
+<div class="w-9 h-9 rounded-lg bg-[#0066CC] flex items-center justify-center">
+<svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+<path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+</svg>
+</div>
+<span class="text-xl font-bold text-gray-900">Clario</span>
+</div>
+<nav class="flex items-center gap-6">
+<a href="/developers" class="text-gray-600 hover:text-gray-900 text-sm font-medium">API</a>
+{userStatus ? (
+  <div class="flex items-center gap-4">
+    <span class="text-gray-500 text-sm">{userStatus.email}</span>
+    <button id="logout-btn" class="text-gray-500 hover:text-gray-900 text-sm font-medium">Sign out</button>
+  </div>
+) : (
+  <button id="show-auth-btn" class="btn-primary text-sm">Sign in</button>
+)}
+</nav>
+</div>
+</header>
+
+<div id="auth-modal" class="hidden modal-overlay">
+<div class="modal-content relative">
+<div id="auth-form-state">
+<h3 class="text-xl font-bold text-gray-900 mb-2">Sign in to Clario</h3>
+<p class="text-gray-600 mb-6">Enter your email to receive a magic link</p>
+<input type="email" id="auth-email" placeholder="you@example.com" class="input mb-4" />
+<button id="send-link-btn" class="btn-primary w-full">Send magic link</button>
+<p id="auth-error" class="text-red-500 text-sm mt-3 hidden text-center"></p>
+</div>
+<div id="auth-sent-state" class="hidden text-center">
+<div class="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+<svg class="w-7 h-7 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+</div>
+<h3 class="text-xl font-bold text-gray-900 mb-2">Check your email</h3>
+<p class="text-gray-600 mb-6">We sent a magic link to <span id="sent-email" class="font-medium text-gray-900"></span></p>
+<button id="back-to-form-btn" class="link text-sm">Use a different email</button>
+</div>
+<button id="close-auth-btn" class="absolute top-4 right-4 text-gray-400 hover:text-gray-600">
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+</button>
+</div>
+</div>
+
+<section class="pt-28 pb-12 px-6 gradient-hero">
+<div class="max-w-5xl mx-auto">
+<div class="text-center mb-10">
+<span class="badge badge-primary mb-4">For FHIR Implementers</span>
+<h1 class="text-4xl md:text-5xl font-bold text-gray-900 mb-4 leading-tight">FHIR diagrams without the pain</h1>
+<p class="text-xl text-gray-600 max-w-2xl mx-auto mb-8">Explain complex healthcare data flows visually. Generate professional diagrams from plain text in seconds.</p>
+<a href="#create" class="btn-primary inline-flex items-center gap-2 text-lg">Create your first diagram
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+</a>
+</div>
+<div class="grid md:grid-cols-3 gap-4">
+<div class="style-card"><img src="/styles/fhir-technical.png" alt="FHIR Technical" /><div class="style-card-label">Technical Diagram</div></div>
+<div class="style-card"><img src="/styles/fhir-workflow.png" alt="FHIR Workflow" /><div class="style-card-label">Workflow Diagram</div></div>
+<div class="style-card"><img src="/styles/fhir-hierarchy.png" alt="FHIR Hierarchy" /><div class="style-card-label">Profile Hierarchy</div></div>
+</div>
+</div>
+</section>
+
+<section class="py-16 px-6">
+<div class="max-w-5xl mx-auto">
+<h2 class="text-2xl font-bold text-center text-gray-900 mb-3">Built for healthcare documentation</h2>
+<p class="text-gray-600 text-center mb-10 max-w-xl mx-auto">Stop spending hours in Visio. Describe what you need, get a clear visual explanation.</p>
+<div class="grid md:grid-cols-3 gap-8">
+<div class="text-center">
+<div class="feature-icon mx-auto mb-4"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg></div>
+<h3 class="font-semibold text-gray-900 mb-2">Implementation Guides</h3>
+<p class="text-gray-600 text-sm">Visualize resource relationships, profiles, and extensions for your IG documentation.</p>
+</div>
+<div class="text-center">
+<div class="feature-icon mx-auto mb-4"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg></div>
+<h3 class="font-semibold text-gray-900 mb-2">Training Materials</h3>
+<p class="text-gray-600 text-sm">Create clear visuals for FHIR training, onboarding, and education programs.</p>
+</div>
+<div class="text-center">
+<div class="feature-icon mx-auto mb-4"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg></div>
+<h3 class="font-semibold text-gray-900 mb-2">Stakeholder Communication</h3>
+<p class="text-gray-600 text-sm">Explain technical concepts to clinical and business stakeholders clearly.</p>
+</div>
+</div>
+</div>
+</section>
+
+<section id="create" class="py-16 px-6 bg-gray-50">
+<div class="max-w-2xl mx-auto">
+<h2 class="text-2xl font-bold text-center text-gray-900 mb-8">Create Your Diagram</h2>
+<div class="card p-6">
+<div class="mb-5">
+<label class="block text-sm font-medium text-gray-700 mb-2">What do you want to explain?</label>
+<textarea id="concept" rows="3" placeholder="e.g., How a Patient resource connects to Encounter and Observation..." class="input resize-none"></textarea>
+</div>
+<div class="mb-5">
+<label class="block text-sm font-medium text-gray-700 mb-2">Diagram Style</label>
+<div class="grid grid-cols-3 gap-3 mb-3">
+<button type="button" data-style="fhir-technical" class="style-option active p-3 rounded-lg border-2 border-[#0066CC] bg-blue-50 text-center"><span class="text-sm font-medium text-gray-900">Technical</span></button>
+<button type="button" data-style="fhir-workflow" class="style-option p-3 rounded-lg border border-gray-200 hover:border-gray-300 text-center"><span class="text-sm font-medium text-gray-900">Workflow</span></button>
+<button type="button" data-style="fhir-hierarchy" class="style-option p-3 rounded-lg border border-gray-200 hover:border-gray-300 text-center"><span class="text-sm font-medium text-gray-900">Hierarchy</span></button>
+</div>
+<details class="text-sm">
+<summary class="text-gray-500 cursor-pointer hover:text-gray-700">More styles</summary>
+<div class="grid grid-cols-4 gap-2 mt-3">
+<button type="button" data-style="xplane" class="style-option p-2 rounded border border-gray-200 text-xs text-gray-700">Whiteboard</button>
+<button type="button" data-style="minimal-line" class="style-option p-2 rounded border border-gray-200 text-xs text-gray-700">Minimal</button>
+<button type="button" data-style="infographic" class="style-option p-2 rounded border border-gray-200 text-xs text-gray-700">Infographic</button>
+<button type="button" data-style="roadmap" class="style-option p-2 rounded border border-gray-200 text-xs text-gray-700">Roadmap</button>
+<button type="button" data-style="tron" class="style-option p-2 rounded border border-gray-200 text-xs text-gray-700">Tron</button>
+<button type="button" data-style="editorial" class="style-option p-2 rounded border border-gray-200 text-xs text-gray-700">Editorial</button>
+<button type="button" data-style="risograph" class="style-option p-2 rounded border border-gray-200 text-xs text-gray-700">Risograph</button>
+<button type="button" data-style="woodcut" class="style-option p-2 rounded border border-gray-200 text-xs text-gray-700">Woodcut</button>
+</div>
+</details>
+<input type="hidden" id="style-select" value="fhir-technical" />
+</div>
+
+{userStatus ? (
+  <div class="mb-5 p-4 rounded-lg bg-gray-50 border border-gray-200">
+    <div class="flex items-center gap-3">
+      <div class="avatar avatar-blue text-sm">{userStatus.email.charAt(0).toUpperCase()}</div>
+      <div>
+        <p class="text-sm font-medium text-gray-900">{userStatus.email}</p>
+        <p id="remaining-text" class={`text-xs ${userStatus.paid ? 'text-green-600' : userStatus.remaining === 0 ? 'text-amber-600' : 'text-gray-500'}`}>
+          {userStatus.paid ? 'Unlimited generations' : userStatus.remaining === 0 ? 'No free generations remaining' : `${userStatus.remaining} free generation${userStatus.remaining === 1 ? '' : 's'} remaining`}
+        </p>
+      </div>
+    </div>
+  </div>
+) : (
+  <div class="mb-5 p-4 rounded-lg bg-blue-50 border border-blue-100">
+    <p class="text-gray-700 text-sm text-center mb-3">Sign in to start creating diagrams</p>
+    <button id="auth-prompt-btn" class="btn-primary w-full text-sm">Sign in with email</button>
+  </div>
+)}
+
+<button id="generate-btn" class={`btn-primary w-full ${!userStatus ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!userStatus}>Generate Diagram</button>
+
+<div id="paywall" class="hidden paywall-card mt-5 text-center">
+<p class="font-bold text-gray-900 text-lg mb-1">You've used your 3 free diagrams</p>
+<p class="text-gray-600 text-sm mb-4">Unlock unlimited access with a one-time payment.</p>
+<button id="checkout-btn" class="btn-primary w-full">Unlock Unlimited - $25</button>
+<p class="text-gray-500 text-xs mt-3">No subscription. Pay once, use forever.</p>
+</div>
+
+<div id="loading-section" class="hidden mt-6">
+<div class="text-center py-8">
+<div class="spinner mx-auto mb-4"></div>
+<p id="loading-status" class="text-gray-900 font-medium mb-3">Analyzing concept...</p>
+<div class="progress-bar max-w-xs mx-auto"><div id="progress-bar" class="progress-fill" style="width:0%"></div></div>
+</div>
+</div>
+
+<div id="result-section" class="hidden mt-6">
+<img id="result-image" class="w-full rounded-lg border border-gray-200" />
+<button id="download-btn" type="button" class="btn-primary w-full mt-4">Download PNG</button>
+</div>
+
+<div id="error-section" class="hidden mt-6 text-center">
+<p id="error-message" class="text-red-600 mb-3">Error</p>
+<button id="retry-btn" class="btn-secondary">Try again</button>
+</div>
+</div>
+</div>
+</section>
+
+<section class="py-16 px-6">
+<div class="max-w-3xl mx-auto">
+<div class="testimonial text-center p-8">
+<svg class="w-10 h-10 text-gray-300 mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/></svg>
+<p class="text-lg text-gray-700 mb-6">"The FHIR diagram styles are surprisingly accurate. Saved me from drawing yet another resource relationship diagram by hand. My team loves it."</p>
+<div class="flex items-center justify-center gap-3">
+<div class="avatar avatar-teal">J</div>
+<div class="text-left"><p class="font-medium text-gray-900">James T.</p><p class="text-gray-500 text-sm">Healthcare IT Lead</p></div>
+</div>
+</div>
+</div>
+</section>
+
+<footer class="py-8 px-6 border-t border-gray-200">
+<div class="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+<p class="text-gray-500 text-sm">Clario</p>
+<div class="flex items-center gap-6">
+<a href="/developers" class="text-gray-500 hover:text-gray-700 text-sm">API</a>
+<a href="/privacy" class="text-gray-500 hover:text-gray-700 text-sm">Privacy</a>
+<a href="/terms" class="text-gray-500 hover:text-gray-700 text-sm">Terms</a>
+</div>
+</div>
+</footer>
+
+<script is:inline define:vars={{ userStatus }}>
+const authModal=document.getElementById("auth-modal"),showAuthBtn=document.getElementById("show-auth-btn"),authPromptBtn=document.getElementById("auth-prompt-btn"),closeAuthBtn=document.getElementById("close-auth-btn"),authEmail=document.getElementById("auth-email"),sendLinkBtn=document.getElementById("send-link-btn"),authError=document.getElementById("auth-error"),authFormState=document.getElementById("auth-form-state"),authSentState=document.getElementById("auth-sent-state"),sentEmail=document.getElementById("sent-email"),backToFormBtn=document.getElementById("back-to-form-btn"),logoutBtn=document.getElementById("logout-btn"),genBtn=document.getElementById("generate-btn"),concept=document.getElementById("concept"),loading=document.getElementById("loading-section"),result=document.getElementById("result-section"),errSec=document.getElementById("error-section"),resImg=document.getElementById("result-image"),dlBtn=document.getElementById("download-btn"),errMsg=document.getElementById("error-message"),retry=document.getElementById("retry-btn"),remainingText=document.getElementById("remaining-text"),paywall=document.getElementById("paywall"),checkoutBtn=document.getElementById("checkout-btn"),styleSelect=document.getElementById("style-select"),statusEl=document.getElementById("loading-status"),progressBar=document.getElementById("progress-bar");
+let currentImageUrl=null,selectedStyle="fhir-technical";
+document.querySelectorAll(".style-option").forEach(b=>{b.addEventListener("click",()=>{document.querySelectorAll(".style-option").forEach(x=>{x.classList.remove("active","border-[#0066CC]","bg-blue-50","border-2");x.classList.add("border-gray-200","border")});b.classList.add("active","border-[#0066CC]","bg-blue-50","border-2");b.classList.remove("border-gray-200","border");selectedStyle=b.dataset.style;styleSelect.value=selectedStyle})});
+if(userStatus&&userStatus.remaining===0&&!userStatus.paid){paywall.classList.remove("hidden");genBtn.classList.add("hidden")}
+function showAuthModal(){authModal.classList.remove("hidden");authFormState.classList.remove("hidden");authSentState.classList.add("hidden");authError.classList.add("hidden")}
+function hideAuthModal(){authModal.classList.add("hidden")}
+if(showAuthBtn)showAuthBtn.onclick=showAuthModal;
+if(authPromptBtn)authPromptBtn.onclick=showAuthModal;
+if(closeAuthBtn)closeAuthBtn.onclick=hideAuthModal;
+if(backToFormBtn)backToFormBtn.onclick=()=>{authFormState.classList.remove("hidden");authSentState.classList.add("hidden")};
+authModal?.addEventListener("click",e=>{if(e.target===authModal)hideAuthModal()});
+if(sendLinkBtn){sendLinkBtn.onclick=async()=>{const email=authEmail.value.trim();if(!email||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){authError.textContent="Please enter a valid email";authError.classList.remove("hidden");return}authError.classList.add("hidden");sendLinkBtn.disabled=true;sendLinkBtn.textContent="Sending...";try{const res=await fetch("/api/auth/send-magic-link",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email})});const data=await res.json();if(!res.ok)throw new Error(data.error||"Failed");sentEmail.textContent=email;authFormState.classList.add("hidden");authSentState.classList.remove("hidden")}catch(e){authError.textContent=e.message;authError.classList.remove("hidden")}finally{sendLinkBtn.disabled=false;sendLinkBtn.textContent="Send magic link"}}}
+if(logoutBtn){logoutBtn.onclick=async()=>{await fetch("/api/auth/logout",{method:"POST"});location.reload()}}
+if(checkoutBtn){checkoutBtn.onclick=async()=>{checkoutBtn.disabled=true;checkoutBtn.textContent="Loading...";try{const res=await fetch("/api/checkout",{method:"POST",headers:{"Content-Type":"application/json"},body:"{}"});const data=await res.json();if(data.checkoutUrl)location.href=data.checkoutUrl;else throw new Error(data.error||"Failed")}catch(e){alert("Checkout failed: "+e.message);checkoutBtn.disabled=false;checkoutBtn.textContent="Unlock Unlimited - $25"}}}
+function updateRemaining(r,p){if(!remainingText)return;remainingText.textContent=p?"Unlimited generations":r===0?"No free generations remaining":r+" free generation"+(r===1?"":"s")+" remaining";remainingText.className="text-xs "+(p?"text-green-600":r===0?"text-amber-600":"text-gray-500")}
+function showPaywall(){paywall.classList.remove("hidden");genBtn.classList.add("hidden")}
+const stages=["Analyzing concept...","Composing layout...","Rendering diagram...","Finalizing..."];let stageIdx=0,progressInt=null;
+function startProgress(){stageIdx=0;statusEl.textContent=stages[0];progressBar.style.width="10%";progressInt=setInterval(()=>{stageIdx++;if(stageIdx<stages.length){statusEl.textContent=stages[stageIdx];progressBar.style.width=(10+stageIdx*25)+"%"}},3000)}
+function stopProgress(){clearInterval(progressInt);progressBar.style.width="100%"}
+async function gen(){if(!userStatus){showAuthModal();return}const c=concept.value.trim();if(!c){concept.focus();return}loading.classList.remove("hidden");result.classList.add("hidden");errSec.classList.add("hidden");startProgress();try{const r=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({concept:c,style:selectedStyle})});const d=await r.json();if(r.status===401){stopProgress();loading.classList.add("hidden");showAuthModal();return}if(r.status===402){stopProgress();loading.classList.add("hidden");updateRemaining(0,false);showPaywall();return}if(!r.ok)throw new Error(d.error||"Failed");resImg.src=d.imageUrl;currentImageUrl=d.imageUrl;updateRemaining(d.remaining,d.paid);stopProgress();loading.classList.add("hidden");result.classList.remove("hidden")}catch(x){stopProgress();loading.classList.add("hidden");errMsg.textContent=x.message;errSec.classList.remove("hidden")}}
+dlBtn.onclick=async()=>{if(!currentImageUrl)return;try{const res=await fetch(currentImageUrl);const blob=await res.blob();const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="clario-"+Date.now()+".png";document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url)}catch(e){window.open(currentImageUrl,"_blank")}};
+genBtn.onclick=gen;retry.onclick=gen;
+</script>
+</body>
+</html>

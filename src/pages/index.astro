@@ -1,20 +1,60 @@
 ---
 import "../styles/global.css";
+import { createServerSupabaseClient, createAdminClient } from '../lib/supabase';
+
+// Check for authenticated user
+const responseHeaders = new Headers();
+const supabase = createServerSupabaseClient(Astro.request, responseHeaders);
+const { data: { user } } = await supabase.auth.getUser();
+
+// If authenticated, get user status from database
+let userStatus = null;
+if (user?.email) {
+  const adminClient = createAdminClient();
+  const { data } = await adminClient
+    .from('users')
+    .select('generations_used, paid')
+    .eq('email', user.email.toLowerCase().trim())
+    .single();
+
+  if (data) {
+    const FREE_GENERATIONS = 3;
+    userStatus = {
+      email: user.email,
+      paid: data.paid,
+      generations_used: data.generations_used,
+      remaining: data.paid ? 'unlimited' : Math.max(0, FREE_GENERATIONS - data.generations_used)
+    };
+  } else {
+    // User authenticated but no DB record yet
+    userStatus = {
+      email: user.email,
+      paid: false,
+      generations_used: 0,
+      remaining: 3
+    };
+  }
+}
+
+// Copy any auth cookies to response
+responseHeaders.forEach((value, key) => {
+  Astro.response.headers.append(key, value);
+});
 ---
 <!doctype html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Clario</title>
+<title>Clario - FHIR Diagrams</title>
 <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-<body class="min-h-screen bg-gray-950 text-white">
-<header class="fixed top-0 left-0 right-0 z-50 bg-gray-950/95 border-b border-gray-800">
+<body class="min-h-screen bg-white text-gray-900">
+<header class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-200">
 <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
 <div class="flex items-center gap-3">
-<div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-orange-500 flex items-center justify-center" style="transform:rotate(-3deg)">
+<div class="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-teal-500 flex items-center justify-center" style="transform:rotate(-3deg)">
 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5">
 <path stroke-linecap="round" stroke-linejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
 </svg>
@@ -22,14 +62,50 @@ import "../styles/global.css";
 <span class="text-2xl font-extrabold">Clario</span>
 </div>
 <nav class="flex items-center gap-6">
-<a href="/developers" class="text-gray-400 hover:text-white transition">Developers</a>
-<a href="#create" class="bg-orange-500 text-white py-3 px-6 rounded-xl font-bold">Create</a>
+<a href="/developers" class="text-gray-600 hover:text-gray-900 transition">Developers</a>
+{userStatus ? (
+  <div class="flex items-center gap-3">
+    <span class="text-gray-400 text-sm">{userStatus.email}</span>
+    <button id="logout-btn" class="text-gray-600 hover:text-gray-900 transition text-sm">Sign out</button>
+  </div>
+) : (
+  <button id="show-auth-btn" class="bg-blue-600 text-white py-2 px-5 rounded-lg font-semibold">Sign in</button>
+)}
 </nav>
 </div>
 </header>
+
+<!-- Auth Modal -->
+<div id="auth-modal" class="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] hidden items-center justify-center">
+<div class="bg-white rounded-2xl p-8 max-w-md w-full mx-4 shadow-xl relative">
+<div id="auth-form-state">
+<h3 class="text-2xl font-bold mb-2">Sign in to Clario</h3>
+<p class="text-gray-600 mb-6">Enter your email to receive a magic link</p>
+<input type="email" id="auth-email" placeholder="you@example.com" class="w-full bg-white border border-gray-300 rounded-lg p-4 text-gray-900 mb-4" />
+<button id="send-link-btn" class="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold">Send magic link</button>
+<p id="auth-error" class="text-red-400 text-sm mt-2 hidden text-center"></p>
+</div>
+<div id="auth-sent-state" class="hidden text-center">
+<div class="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-4">
+<svg class="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+</svg>
+</div>
+<h3 class="text-2xl font-bold mb-2">Check your email</h3>
+<p class="text-gray-600 mb-6">We sent a magic link to <span id="sent-email" class="text-white"></span></p>
+<button id="back-to-form-btn" class="text-blue-400 hover:text-blue-300">Use a different email</button>
+</div>
+<button id="close-auth-btn" class="absolute top-4 right-4 text-gray-500 hover:text-white">
+<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+</svg>
+</button>
+</div>
+</div>
+
 <section class="pt-32 pb-6 px-6">
 <div class="max-w-5xl mx-auto text-center">
-<h1 class="text-4xl font-bold mb-4">Visual explanations in seconds</h1>
+<h1 class="text-4xl font-bold mb-4">FHIR diagrams without the pain</h1>
 <img src="/hero-before-after.png" alt="Hero" class="w-full rounded-2xl" />
 </div>
 </section>
@@ -55,16 +131,53 @@ import "../styles/global.css";
 <div class="p-3 bg-gray-900"><p class="text-sm font-medium">Infographic</p></div>
 </a>
 </div>
-<p class="text-center mt-6"><a href="/styles" class="text-blue-400 hover:text-blue-300">View all 8 styles &rarr;</a></p>
+<p class="text-center mt-6"><a href="/styles" class="text-blue-400 hover:text-blue-300">View all 11 styles &rarr;</a></p>
 </div>
 </section>
-<section id="create" class="py-12 px-6 bg-gray-900">
+<section class="py-16 px-6">
+<div class="max-w-5xl mx-auto">
+<h2 class="text-2xl font-bold text-center mb-10">What people are saying</h2>
+<div class="grid md:grid-cols-3 gap-6">
+<div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+<div class="flex items-center gap-3 mb-4">
+<div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">S</div>
+<div>
+<p class="font-semibold">Sarah K.</p>
+<p class="text-gray-500 text-sm">Technical Writer</p>
+</div>
+</div>
+<p class="text-gray-600">"I used to spend hours in Figma trying to explain technical concepts. Now I just describe what I need and get a clean visual in seconds. Game changer for documentation."</p>
+</div>
+<div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+<div class="flex items-center gap-3 mb-4">
+<div class="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center text-white font-bold">M</div>
+<div>
+<p class="font-semibold">Marcus R.</p>
+<p class="text-gray-500 text-sm">Product Manager</p>
+</div>
+</div>
+<p class="text-gray-600">"Finally, a tool that understands what I actually need. The whiteboard style is perfect for stakeholder presentations. Looks hand-drawn but takes 10 seconds."</p>
+</div>
+<div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+<div class="flex items-center gap-3 mb-4">
+<div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center text-white font-bold">J</div>
+<div>
+<p class="font-semibold">James T.</p>
+<p class="text-gray-500 text-sm">Healthcare IT Lead</p>
+</div>
+</div>
+<p class="text-gray-600">"The FHIR diagram styles are surprisingly accurate. Saved me from drawing yet another resource relationship diagram by hand. My team loves it."</p>
+</div>
+</div>
+</div>
+</section>
+<section id="create" class="py-16 px-6 bg-gray-50">
 <div class="max-w-3xl mx-auto">
-<h2 class="text-3xl font-bold text-center mb-8">Create Your Clario</h2>
-<textarea id="concept" rows="4" placeholder="Describe what you want..." class="w-full bg-gray-800 border border-gray-700 rounded-xl p-4 text-white mb-4"></textarea>
+<h2 class="text-2xl font-bold text-center text-gray-900 mb-8">Create Your Clario</h2>
+<textarea id="concept" rows="4" placeholder="Describe what you want..." class="w-full bg-white border border-gray-300 rounded-lg p-4 text-gray-900 mb-4"></textarea>
 <div class="mb-4">
 <label class="block text-gray-400 text-sm mb-2">Visual Style</label>
-<select id="style-select" class="w-full bg-gray-800 border border-gray-700 rounded-xl p-4 text-white">
+<select id="style-select" class="w-full bg-white border border-gray-300 rounded-lg p-4 text-gray-900">
 <option value="xplane">Whiteboard</option>
 <option value="tron">Tron Dark Whiteboard</option>
 <option value="minimal-line">Minimal Line Art</option>
@@ -80,22 +193,46 @@ import "../styles/global.css";
 </optgroup>
 </select>
 </div>
-<div id="email-gate" class="bg-gray-800 rounded-xl p-6 border border-gray-700 mb-4">
-<p class="text-white font-bold text-center mb-4">Early Access</p>
-<input type="text" id="user-name" placeholder="Your name" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white mb-3" />
-<input type="email" id="user-email" placeholder="Email" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white mb-3" />
-<input type="text" id="invite-code" placeholder="Invite code" class="w-full bg-gray-900 border border-gray-600 rounded-lg p-3 text-white font-mono mb-3" />
-<button id="unlock-btn" class="w-full bg-orange-500 text-white py-4 rounded-xl font-bold">Unlock Access</button>
-<p id="email-error" class="text-red-400 text-sm mt-2 hidden text-center"></p>
+
+<!-- Auth status section -->
+{userStatus ? (
+  <div id="auth-status" class="mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-bold">
+          {userStatus.email.charAt(0).toUpperCase()}
+        </div>
+        <div>
+          <p class="text-gray-900 font-medium">{userStatus.email}</p>
+          <p id="remaining-text" class={`text-sm ${userStatus.paid ? 'text-green-400' : userStatus.remaining === 0 ? 'text-orange-400' : 'text-gray-400'}`}>
+            {userStatus.paid ? 'Unlimited generations' : userStatus.remaining === 0 ? 'No free generations remaining' : `${userStatus.remaining} free generation${userStatus.remaining === 1 ? '' : 's'} remaining`}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+) : (
+  <div id="auth-prompt" class="mb-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+    <p class="text-gray-400 text-center mb-3">Sign in to start creating</p>
+    <button id="auth-prompt-btn" class="w-full bg-blue-500 text-white py-3 rounded-xl font-bold">Sign in with email</button>
+  </div>
+)}
+
+<button id="generate-btn" class={`w-full bg-blue-600 text-white py-4 rounded-lg font-semibold ${!userStatus ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={!userStatus}>Create Clario</button>
+
+<div id="paywall" class="hidden bg-gradient-to-br from-orange-500/10 to-yellow-500/10 rounded-xl p-6 border border-orange-500/30 mt-4">
+<p class="text-white font-bold text-center text-xl mb-2">You've used your 3 free generations!</p>
+<p class="text-gray-600 text-center mb-4">Unlock unlimited access for life with a one-time payment.</p>
+<button id="checkout-btn" class="block w-full bg-gradient-to-r from-orange-500 to-yellow-500 text-white py-4 rounded-xl font-bold text-center hover:opacity-90 transition">Unlock Unlimited - $25 (one-time)</button>
+<p class="text-gray-500 text-xs text-center mt-3">No subscription. Pay once, use forever.</p>
 </div>
-<button id="generate-btn" class="hidden w-full bg-blue-500 text-white py-4 rounded-xl font-bold">Create Clario</button>
 <div id="loading-section" class="hidden mt-8">
-<div class="bg-gray-800 rounded-xl p-10 text-center border border-gray-700">
+<div class="bg-gray-50 rounded-xl p-10 text-center border border-gray-200">
 <div class="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-<p id="loading-status" class="text-white text-lg font-bold">Analyzing...</p>
+<p id="loading-status" class="text-gray-900 text-lg font-semibold">Analyzing...</p>
 <div class="mt-4 max-w-xs mx-auto">
-<div class="h-2 bg-gray-700 rounded-full overflow-hidden">
-<div id="progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-orange-500 rounded-full transition-all duration-500" style="width:0%"></div>
+<div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+<div id="progress-bar" class="h-full bg-gradient-to-r from-blue-500 to-teal-500 rounded-full transition-all duration-500" style="width:0%"></div>
 </div>
 </div>
 </div>
@@ -104,14 +241,23 @@ import "../styles/global.css";
 <div id="error-section" class="hidden mt-8 text-center text-red-400"><p id="error-message">Error</p><button id="retry-btn" class="mt-2 bg-red-500 text-white py-2 px-4 rounded">Retry</button></div>
 </div>
 </section>
-<script is:inline>
-const VALID_CODE = "1001-01";
-const gate = document.getElementById("email-gate");
-const nameIn = document.getElementById("user-name");
-const emailIn = document.getElementById("user-email");
-const codeIn = document.getElementById("invite-code");
-const unlockBtn = document.getElementById("unlock-btn");
-const err = document.getElementById("email-error");
+
+<script is:inline define:vars={{ userStatus }}>
+// Auth modal elements
+const authModal = document.getElementById("auth-modal");
+const showAuthBtn = document.getElementById("show-auth-btn");
+const authPromptBtn = document.getElementById("auth-prompt-btn");
+const closeAuthBtn = document.getElementById("close-auth-btn");
+const authEmail = document.getElementById("auth-email");
+const sendLinkBtn = document.getElementById("send-link-btn");
+const authError = document.getElementById("auth-error");
+const authFormState = document.getElementById("auth-form-state");
+const authSentState = document.getElementById("auth-sent-state");
+const sentEmail = document.getElementById("sent-email");
+const backToFormBtn = document.getElementById("back-to-form-btn");
+const logoutBtn = document.getElementById("logout-btn");
+
+// Generation elements
 const genBtn = document.getElementById("generate-btn");
 const concept = document.getElementById("concept");
 const loading = document.getElementById("loading-section");
@@ -121,23 +267,146 @@ const resImg = document.getElementById("result-image");
 const dlBtn = document.getElementById("download-btn");
 const errMsg = document.getElementById("error-message");
 const retry = document.getElementById("retry-btn");
+const remainingText = document.getElementById("remaining-text");
+const paywall = document.getElementById("paywall");
+const checkoutBtn = document.getElementById("checkout-btn");
 
 let currentImageUrl = null;
 
-if(localStorage.getItem("clario_unlocked")==="true"){gate.classList.add("hidden");genBtn.classList.remove("hidden");}
+// Show initial paywall if user has 0 remaining
+if (userStatus && userStatus.remaining === 0 && !userStatus.paid) {
+  paywall.classList.remove("hidden");
+  genBtn.classList.add("hidden");
+}
 
-unlockBtn.onclick = async () => {
-  const n=nameIn.value.trim(), e=emailIn.value.trim(), c=codeIn.value.trim();
-  if(!n){err.textContent="Enter name";err.classList.remove("hidden");return;}
-  if(!e||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)){err.textContent="Valid email required";err.classList.remove("hidden");return;}
-  if(c!==VALID_CODE){err.textContent="Invalid invite code";err.classList.remove("hidden");return;}
-  err.classList.add("hidden");
-  try{
-    await fetch("/api/subscribe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:e,name:n,inviteCode:c})});
-    localStorage.setItem("clario_unlocked","true");
-    gate.classList.add("hidden");genBtn.classList.remove("hidden");
-  }catch(x){err.textContent=x.message;err.classList.remove("hidden");}
+// Auth modal functions
+function showAuthModal() {
+  authModal.classList.remove("hidden");
+  authModal.classList.add("flex");
+  authFormState.classList.remove("hidden");
+  authSentState.classList.add("hidden");
+  authError.classList.add("hidden");
+}
+
+function hideAuthModal() {
+  authModal.classList.add("hidden");
+  authModal.classList.remove("flex");
+}
+
+if (showAuthBtn) showAuthBtn.onclick = showAuthModal;
+if (authPromptBtn) authPromptBtn.onclick = showAuthModal;
+if (closeAuthBtn) closeAuthBtn.onclick = hideAuthModal;
+if (backToFormBtn) backToFormBtn.onclick = () => {
+  authFormState.classList.remove("hidden");
+  authSentState.classList.add("hidden");
 };
+
+// Close modal on outside click
+authModal?.addEventListener("click", (e) => {
+  if (e.target === authModal) hideAuthModal();
+});
+
+// Send magic link
+if (sendLinkBtn) {
+  sendLinkBtn.onclick = async () => {
+    const email = authEmail.value.trim();
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      authError.textContent = "Please enter a valid email";
+      authError.classList.remove("hidden");
+      return;
+    }
+    authError.classList.add("hidden");
+    sendLinkBtn.disabled = true;
+    sendLinkBtn.textContent = "Sending...";
+
+    try {
+      const res = await fetch("/api/auth/send-magic-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send magic link");
+      }
+
+      sentEmail.textContent = email;
+      authFormState.classList.add("hidden");
+      authSentState.classList.remove("hidden");
+    } catch (e) {
+      authError.textContent = e.message;
+      authError.classList.remove("hidden");
+    } finally {
+      sendLinkBtn.disabled = false;
+      sendLinkBtn.textContent = "Send magic link";
+    }
+  };
+}
+
+// Logout
+if (logoutBtn) {
+  logoutBtn.onclick = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      window.location.reload();
+    } catch (e) {
+      console.error("Logout failed:", e);
+    }
+  };
+}
+
+// Checkout
+if (checkoutBtn) {
+  checkoutBtn.onclick = async () => {
+    try {
+      checkoutBtn.disabled = true;
+      checkoutBtn.textContent = "Loading...";
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+      const data = await res.json();
+      if (data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        throw new Error(data.error || "Failed to create checkout");
+      }
+    } catch (e) {
+      alert("Checkout failed: " + e.message);
+      checkoutBtn.disabled = false;
+      checkoutBtn.textContent = "Unlock Unlimited - $25 (one-time)";
+    }
+  };
+}
+
+function updateRemainingDisplay(remaining, paid) {
+  if (!remainingText) return;
+  if (paid) {
+    remainingText.textContent = "Unlimited generations";
+    remainingText.classList.remove("text-gray-400", "text-orange-400");
+    remainingText.classList.add("text-green-400");
+  } else if (remaining === 0) {
+    remainingText.textContent = "No free generations remaining";
+    remainingText.classList.remove("text-gray-400", "text-green-400");
+    remainingText.classList.add("text-orange-400");
+  } else {
+    remainingText.textContent = remaining + " free generation" + (remaining === 1 ? "" : "s") + " remaining";
+    remainingText.classList.remove("text-green-400", "text-orange-400");
+    remainingText.classList.add("text-gray-400");
+  }
+}
+
+function showPaywall() {
+  paywall.classList.remove("hidden");
+  genBtn.classList.add("hidden");
+}
+
+function hidePaywall() {
+  paywall.classList.add("hidden");
+  genBtn.classList.remove("hidden");
+}
 
 const styleSelect = document.getElementById("style-select");
 const urlStyle = new URLSearchParams(location.search).get("style");
@@ -166,22 +435,63 @@ function stopProgress() {
 }
 
 async function gen(){
-  const c=concept.value.trim();if(!c)return alert("Describe something");
-  loading.classList.remove("hidden");result.classList.add("hidden");errSec.classList.add("hidden");
+  if (!userStatus) {
+    showAuthModal();
+    return;
+  }
+
+  const c = concept.value.trim();
+  if (!c) return alert("Describe something");
+
+  loading.classList.remove("hidden");
+  result.classList.add("hidden");
+  errSec.classList.add("hidden");
   startProgress();
-  try{
-    const r=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({concept:c,style:styleSelect.value})});
-    if(!r.ok)throw new Error(await r.text());
-    const d=await r.json();
-    resImg.src=d.imageUrl;
-    currentImageUrl=d.imageUrl;
+
+  try {
+    const r = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ concept: c, style: styleSelect.value })
+    });
+
+    const d = await r.json();
+
+    if (r.status === 401) {
+      stopProgress();
+      loading.classList.add("hidden");
+      showAuthModal();
+      return;
+    }
+
+    if (r.status === 402) {
+      stopProgress();
+      loading.classList.add("hidden");
+      updateRemainingDisplay(0, false);
+      showPaywall();
+      return;
+    }
+
+    if (!r.ok) {
+      throw new Error(d.error || "Generation failed");
+    }
+
+    resImg.src = d.imageUrl;
+    currentImageUrl = d.imageUrl;
+    updateRemainingDisplay(d.remaining, d.paid);
     stopProgress();
-    loading.classList.add("hidden");result.classList.remove("hidden");
-  }catch(x){stopProgress();loading.classList.add("hidden");errMsg.textContent=x.message;errSec.classList.remove("hidden");}
+    loading.classList.add("hidden");
+    result.classList.remove("hidden");
+  } catch (x) {
+    stopProgress();
+    loading.classList.add("hidden");
+    errMsg.textContent = x.message;
+    errSec.classList.remove("hidden");
+  }
 }
 
 dlBtn.onclick = async () => {
-  if(!currentImageUrl) return;
+  if (!currentImageUrl) return;
   try {
     const response = await fetch(currentImageUrl);
     const blob = await response.blob();
@@ -193,12 +503,13 @@ dlBtn.onclick = async () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  } catch(e) {
+  } catch (e) {
     window.open(currentImageUrl, "_blank");
   }
 };
 
-genBtn.onclick=gen;retry.onclick=gen;
+genBtn.onclick = gen;
+retry.onclick = gen;
 </script>
 </body>
 </html>

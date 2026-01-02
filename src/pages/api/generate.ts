@@ -1,5 +1,26 @@
 import type { APIRoute } from 'astro';
 import { GoogleGenAI } from '@google/genai';
+import { getUserEmail, createAdminClient } from '../../lib/supabase';
+
+const FREE_GENERATIONS = 3;
+
+async function getOrCreateUser(email: string) {
+  const supabase = createAdminClient();
+  const normalizedEmail = email.toLowerCase().trim();
+  const { data: existing } = await supabase
+    .from('users')
+    .select('*')
+    .eq('email', normalizedEmail)
+    .single();
+  if (existing) return existing;
+  const { data: newUser, error } = await supabase
+    .from('users')
+    .insert({ email: normalizedEmail, generations_used: 0, paid: false })
+    .select()
+    .single();
+  if (error) throw new Error('Failed to create user');
+  return newUser;
+}
 
 const STYLE_PROMPTS: Record<string, string> = {
   xplane: `Visual thinking illustration with confident hand-drawn energy:
@@ -203,24 +224,50 @@ AVOID: Incorrect cardinality constraints, missing standard extensions, wrong IG 
 const WATERMARK_TEXT = 'getclario.net';
 
 export const POST: APIRoute = async ({ request }) => {
+  const responseHeaders = new Headers();
+
   try {
+    // Get authenticated user email from session
+    const email = await getUserEmail(request, responseHeaders);
+
+    if (!email) {
+      return new Response(JSON.stringify({ error: 'Authentication required' }), {
+        status: 401, headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
     const { concept, style } = await request.json();
 
     if (!concept || typeof concept !== 'string') {
-      return new Response('Missing concept', { status: 400 });
+      return new Response(JSON.stringify({ error: 'Missing concept' }), {
+        status: 400, headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     if (!style || !STYLE_PROMPTS[style]) {
-      return new Response('Invalid style', { status: 400 });
+      return new Response(JSON.stringify({ error: 'Invalid style' }), {
+        status: 400, headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    // Log prompt for analytics
+    const user = await getOrCreateUser(email);
+
+    if (!user.paid && user.generations_used >= FREE_GENERATIONS) {
+      return new Response(JSON.stringify({
+        error: 'limit_reached',
+        message: 'You have used all 3 free generations.',
+        generations_used: user.generations_used,
+        paid: false
+      }), { status: 402, headers: { 'Content-Type': 'application/json' } });
+    }
+
     console.log(JSON.stringify({
       event: 'generate_prompt',
       timestamp: new Date().toISOString(),
-      prompt: concept,
-      style: style,
+      email, prompt: concept, style,
       promptLength: concept.length,
+      generations_used: user.generations_used,
+      paid: user.paid,
     }));
 
     const apiKey = import.meta.env.GOOGLE_API_KEY;
@@ -268,19 +315,29 @@ Include short hand-written labels and annotations where helpful to clarify key e
     }
 
     if (!imageData) {
-      return new Response('Failed to generate image', { status: 500 });
+      return new Response(JSON.stringify({ error: 'Failed to generate image' }), {
+        status: 500, headers: { 'Content-Type': 'application/json' }
+      });
     }
 
-    const imageUrl = `data:image/png;base64,${imageData}`;
+    const newCount = user.generations_used + 1;
+    const supabase = createAdminClient();
+    await supabase.from('users').update({
+      generations_used: newCount,
+      updated_at: new Date().toISOString()
+    }).eq('id', user.id);
 
-    return new Response(JSON.stringify({ imageUrl }), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const imageUrl = `data:image/png;base64,${imageData}`;
+    const remaining = user.paid ? 'unlimited' : Math.max(0, FREE_GENERATIONS - newCount);
+
+    return new Response(JSON.stringify({
+      imageUrl, generations_used: newCount, remaining, paid: user.paid
+    }), { headers: { 'Content-Type': 'application/json' } });
   } catch (error) {
     console.error('Generation error:', error);
     return new Response(
-      error instanceof Error ? error.message : 'Generation failed',
-      { status: 500 }
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Generation failed' }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
     );
   }
 };
