@@ -1,26 +1,7 @@
 import type { APIRoute } from 'astro';
 import { GoogleGenAI } from '@google/genai';
-import { getUserEmail, createAdminClient } from '../../lib/supabase';
 
-const FREE_GENERATIONS = 3;
-
-async function getOrCreateUser(email: string) {
-  const supabase = createAdminClient();
-  const normalizedEmail = email.toLowerCase().trim();
-  const { data: existing } = await supabase
-    .from('users')
-    .select('*')
-    .eq('email', normalizedEmail)
-    .single();
-  if (existing) return existing;
-  const { data: newUser, error } = await supabase
-    .from('users')
-    .insert({ email: normalizedEmail, generations_used: 0, paid: false })
-    .select()
-    .single();
-  if (error) throw new Error('Failed to create user');
-  return newUser;
-}
+// Auth disabled - anonymous usage allowed
 
 const STYLE_PROMPTS: Record<string, string> = {
   xplane: `Visual thinking illustration with confident hand-drawn energy:
@@ -224,18 +205,7 @@ AVOID: Incorrect cardinality constraints, missing standard extensions, wrong IG 
 const WATERMARK_TEXT = 'getclario.net';
 
 export const POST: APIRoute = async ({ request }) => {
-  const responseHeaders = new Headers();
-
   try {
-    // Get authenticated user email from session
-    const email = await getUserEmail(request, responseHeaders);
-
-    if (!email) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401, headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
     const { concept, style } = await request.json();
 
     if (!concept || typeof concept !== 'string') {
@@ -250,24 +220,11 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
-    const user = await getOrCreateUser(email);
-
-    if (!user.paid && user.generations_used >= FREE_GENERATIONS) {
-      return new Response(JSON.stringify({
-        error: 'limit_reached',
-        message: 'You have used all 3 free generations.',
-        generations_used: user.generations_used,
-        paid: false
-      }), { status: 402, headers: { 'Content-Type': 'application/json' } });
-    }
-
     console.log(JSON.stringify({
       event: 'generate_prompt',
       timestamp: new Date().toISOString(),
-      email, prompt: concept, style,
+      prompt: concept, style,
       promptLength: concept.length,
-      generations_used: user.generations_used,
-      paid: user.paid,
     }));
 
     const apiKey = import.meta.env.GOOGLE_API_KEY;
@@ -278,17 +235,7 @@ export const POST: APIRoute = async ({ request }) => {
     const ai = new GoogleGenAI({ apiKey });
 
     const stylePrompt = STYLE_PROMPTS[style];
-    const fullPrompt = `${stylePrompt}
-
-CONTENT TO ILLUSTRATE: ${concept}
-
-Create a visual illustration that explains this concept clearly. The diagram MUST have:
-1. A prominent TITLE at the top summarizing the concept (3-6 words)
-2. A PROBLEM statement in smaller font below the title (one sentence explaining what problem this solves)
-3. The main visual explanation below
-4. A footer bar at the very bottom of the image with "${WATERMARK_TEXT}" - make it visible and readable (use a contrasting background strip if needed), positioned bottom-center. This is branding, so it should be noticeable but not overwhelming.
-
-Include short hand-written labels and annotations where helpful to clarify key elements. The illustration should be immediately understandable and capture the core idea.`;
+    const fullPrompt = stylePrompt + '\n\nCONTENT TO ILLUSTRATE: ' + concept + '\n\nCreate a visual illustration that explains this concept clearly. The diagram MUST have:\n1. A prominent TITLE at the top summarizing the concept (3-6 words)\n2. A PROBLEM statement in smaller font below the title (one sentence explaining what problem this solves)\n3. The main visual explanation below\n4. A footer bar at the very bottom of the image with "' + WATERMARK_TEXT + '" - make it visible and readable (use a contrasting background strip if needed), positioned bottom-center. This is branding, so it should be noticeable but not overwhelming.\n\nInclude short hand-written labels and annotations where helpful to clarify key elements. The illustration should be immediately understandable and capture the core idea.';
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-image-preview',
@@ -320,19 +267,11 @@ Include short hand-written labels and annotations where helpful to clarify key e
       });
     }
 
-    const newCount = user.generations_used + 1;
-    const supabase = createAdminClient();
-    await supabase.from('users').update({
-      generations_used: newCount,
-      updated_at: new Date().toISOString()
-    }).eq('id', user.id);
+    const imageUrl = 'data:image/png;base64,' + imageData;
 
-    const imageUrl = `data:image/png;base64,${imageData}`;
-    const remaining = user.paid ? 'unlimited' : Math.max(0, FREE_GENERATIONS - newCount);
-
-    return new Response(JSON.stringify({
-      imageUrl, generations_used: newCount, remaining, paid: user.paid
-    }), { headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ imageUrl }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (error) {
     console.error('Generation error:', error);
     return new Response(
