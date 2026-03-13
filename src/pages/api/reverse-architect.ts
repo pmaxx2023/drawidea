@@ -4,6 +4,9 @@ import {
   detectDomain,
   buildDomainContext,
   buildArchitectureValidationContext,
+  inferDefaults,
+  buildDefaultsContext,
+  formatAssumptionsForOutput,
   AWS_PATTERNS,
   type AWSDomain,
 } from '../../lib/aws-knowledge';
@@ -93,16 +96,23 @@ export const POST: APIRoute = async ({ request }) => {
 
     const anthropic = new Anthropic({ apiKey });
 
-    // Detect domain and build context
-    const domain = detectDomain(description);
+    // Infer defaults from sparse input
+    const inferred = inferDefaults(description);
+    const defaultsContext = inferred ? buildDefaultsContext(inferred) : '';
+    const assumptionsOutput = inferred ? formatAssumptionsForOutput(inferred) : '';
+
+    // Detect domain and build context (may overlap with inferred, but provides patterns)
+    const domain = inferred?.domain || detectDomain(description);
     const domainContext = domain ? buildDomainContext(domain) : '';
     const patternContext = getPatternContext(domain);
     const validationContext = buildArchitectureValidationContext();
 
     // Build the full prompt with all context
+    // Order matters: validation rules first, then defaults, then patterns
     const fullPrompt = [
       REVERSE_ARCHITECT_PROMPT,
       validationContext,
+      defaultsContext,  // Inject inferred defaults
       patternContext,
       domainContext,
       `\nSystem to architect:\n${description}`,
@@ -124,7 +134,13 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response('Failed to generate architecture', { status: 500 });
     }
 
-    return new Response(JSON.stringify({ architecture: textContent.text }), {
+    // Append assumptions to the output so users see what was inferred
+    let architecture = textContent.text;
+    if (assumptionsOutput) {
+      architecture = `${assumptionsOutput}\n---\n\n${architecture}`;
+    }
+
+    return new Response(JSON.stringify({ architecture }), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {

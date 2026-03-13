@@ -1382,3 +1382,358 @@ export function detectAWSServices(text: string): string[] {
 
   return [...new Set(found)];
 }
+
+/**
+ * DOMAIN DEFAULTS - Aggressive inference for under-specified prompts
+ * These are opinionated defaults that produce coherent architectures.
+ */
+export interface DomainDefaults {
+  scale: string;
+  scaleNumber: number;
+  computeStrategy: 'serverless' | 'containers' | 'ec2' | 'hybrid';
+  costPriority: 'cost-optimized' | 'balanced' | 'performance';
+  multiTenancy: 'pooled' | 'siloed' | 'none';
+  dataStrategy: string;
+  asyncPattern: string;
+  authPattern: string;
+  instanceSizing?: string;
+  reasoning: string[];
+}
+
+export const AWS_DOMAIN_DEFAULTS: Record<AWSDomain, DomainDefaults> = {
+  'ecommerce': {
+    scale: '100K monthly active users',
+    scaleNumber: 100000,
+    computeStrategy: 'serverless',
+    costPriority: 'balanced',
+    multiTenancy: 'none',
+    dataStrategy: 'DynamoDB for catalog/cart (fast reads), RDS PostgreSQL for orders (ACID)',
+    asyncPattern: 'SQS for order processing, SNS for notifications, EventBridge for inventory sync',
+    authPattern: 'Cognito with social login',
+    reasoning: [
+      'Serverless handles traffic spikes (flash sales) without pre-provisioning',
+      'DynamoDB scales reads infinitely for product browsing',
+      'RDS for orders ensures transactional integrity',
+      'SQS decouples checkout from fulfillment'
+    ],
+  },
+  'saas-multi-tenant': {
+    scale: '100K total users across tenants',
+    scaleNumber: 100000,
+    computeStrategy: 'serverless',
+    costPriority: 'cost-optimized',
+    multiTenancy: 'pooled',
+    dataStrategy: 'DynamoDB with tenant partition key, single table design',
+    asyncPattern: 'EventBridge for cross-tenant events, SQS for tenant-specific jobs',
+    authPattern: 'Cognito with tenant ID in JWT claims',
+    reasoning: [
+      'Pooled resources minimize cost for many small tenants',
+      'Serverless scales per-tenant without idle capacity',
+      'Partition key isolation is sufficient for most SaaS',
+      'JWT tenant claims enable row-level security'
+    ],
+  },
+  'web-app': {
+    scale: '50K monthly active users',
+    scaleNumber: 50000,
+    computeStrategy: 'serverless',
+    costPriority: 'cost-optimized',
+    multiTenancy: 'none',
+    dataStrategy: 'DynamoDB for user data, S3 for assets',
+    asyncPattern: 'EventBridge for background tasks',
+    authPattern: 'Cognito',
+    reasoning: [
+      'Serverless is cost-effective for typical web app traffic patterns',
+      'DynamoDB handles most CRUD patterns well',
+      'No need for containers unless specific runtime requirements'
+    ],
+  },
+  'api-backend': {
+    scale: '10M requests/month',
+    scaleNumber: 10000000,
+    computeStrategy: 'serverless',
+    costPriority: 'cost-optimized',
+    multiTenancy: 'none',
+    dataStrategy: 'DynamoDB for high-throughput, ElastiCache for hot data',
+    asyncPattern: 'SQS for rate limiting and retries',
+    authPattern: 'API Gateway API keys + IAM for service-to-service',
+    reasoning: [
+      'API Gateway + Lambda is cheapest up to ~50M requests/month',
+      'ElastiCache reduces database load for repeated queries',
+      'SQS provides natural backpressure'
+    ],
+  },
+  'video-streaming': {
+    scale: '100K monthly viewers',
+    scaleNumber: 100000,
+    computeStrategy: 'ec2',
+    costPriority: 'balanced',
+    multiTenancy: 'none',
+    dataStrategy: 'S3 for video storage, DynamoDB for metadata, ElastiCache for sessions',
+    asyncPattern: 'SQS + Lambda for transcoding jobs, EventBridge for publish events',
+    authPattern: 'Cognito with signed CloudFront URLs',
+    instanceSizing: 't3.medium for API, c5.xlarge for transcoding',
+    reasoning: [
+      'EC2 better for long-lived video connections',
+      'S3 Intelligent-Tiering for video archive cost optimization',
+      'Signed URLs protect content without per-request auth'
+    ],
+  },
+  'data-pipeline': {
+    scale: '10GB daily ingestion',
+    scaleNumber: 10,
+    computeStrategy: 'serverless',
+    costPriority: 'cost-optimized',
+    multiTenancy: 'none',
+    dataStrategy: 'S3 data lake with Glue catalog, Athena for queries',
+    asyncPattern: 'EventBridge + Step Functions for orchestration',
+    authPattern: 'IAM roles for service access',
+    reasoning: [
+      'Glue Serverless avoids minimum billing for small jobs',
+      'Step Functions coordinates multi-stage pipelines',
+      'Athena avoids always-on warehouse costs'
+    ],
+  },
+  'iot': {
+    scale: '10K devices',
+    scaleNumber: 10000,
+    computeStrategy: 'serverless',
+    costPriority: 'cost-optimized',
+    multiTenancy: 'none',
+    dataStrategy: 'IoT Core + Timestream for time-series, S3 for cold storage',
+    asyncPattern: 'IoT Rules Engine → Lambda/Kinesis',
+    authPattern: 'X.509 certificates for devices',
+    reasoning: [
+      'IoT Core handles device auth and MQTT at scale',
+      'Timestream is cheaper than DynamoDB for time-series',
+      'Lambda for event processing, not always-on'
+    ],
+  },
+  'ml-inference': {
+    scale: '100K inferences/day',
+    scaleNumber: 100000,
+    computeStrategy: 'serverless',
+    costPriority: 'balanced',
+    multiTenancy: 'none',
+    dataStrategy: 'S3 for model artifacts, DynamoDB for prediction cache',
+    asyncPattern: 'SQS for batch inference, SNS for results',
+    authPattern: 'API Gateway + Cognito',
+    reasoning: [
+      'Bedrock/SageMaker Serverless for variable inference load',
+      'Cache predictions to reduce model invocations',
+      'Batch queue for non-real-time requests'
+    ],
+  },
+  'static-site': {
+    scale: '500K page views/month',
+    scaleNumber: 500000,
+    computeStrategy: 'serverless',
+    costPriority: 'cost-optimized',
+    multiTenancy: 'none',
+    dataStrategy: 'S3 for static assets, DynamoDB for any dynamic data',
+    asyncPattern: 'None needed - static content',
+    authPattern: 'CloudFront signed URLs if private, otherwise public',
+    reasoning: [
+      'S3 + CloudFront is the cheapest and fastest for static content',
+      'No compute needed for pure static',
+      'Lambda@Edge only if personalization required'
+    ],
+  },
+  'mobile-backend': {
+    scale: '50K monthly active users',
+    scaleNumber: 50000,
+    computeStrategy: 'serverless',
+    costPriority: 'cost-optimized',
+    multiTenancy: 'none',
+    dataStrategy: 'AppSync + DynamoDB for real-time sync, S3 for media uploads',
+    asyncPattern: 'EventBridge for push notifications, SQS for background processing',
+    authPattern: 'Cognito with social providers (Google, Apple)',
+    reasoning: [
+      'AppSync provides offline-first with automatic sync',
+      'Cognito integrates natively with mobile SDKs',
+      'S3 Transfer Acceleration for global uploads'
+    ],
+  },
+};
+
+/**
+ * Scale detection patterns - extract scale from user input
+ */
+const SCALE_PATTERNS: Array<{ pattern: RegExp; extractor: (match: RegExpMatchArray) => { scale: string; number: number } }> = [
+  {
+    pattern: /(\d+)\s*m(?:illion)?\s*users?/i,
+    extractor: (m) => ({ scale: `${m[1]}M users`, number: parseInt(m[1]) * 1_000_000 }),
+  },
+  {
+    pattern: /(\d+)\s*k\s*users?/i,
+    extractor: (m) => ({ scale: `${m[1]}K users`, number: parseInt(m[1]) * 1_000 }),
+  },
+  {
+    pattern: /(\d+)\s*(?:thousand)\s*users?/i,
+    extractor: (m) => ({ scale: `${m[1]}K users`, number: parseInt(m[1]) * 1_000 }),
+  },
+  {
+    pattern: /(\d+)\s*m(?:illion)?\s*requests?/i,
+    extractor: (m) => ({ scale: `${m[1]}M requests/month`, number: parseInt(m[1]) * 1_000_000 }),
+  },
+  {
+    pattern: /first\s*(\d+)\s*days?/i,
+    extractor: (m) => ({ scale: `launch phase (${m[1]} days)`, number: 50_000 }), // Conservative launch estimate
+  },
+];
+
+/**
+ * Cost priority detection
+ */
+function detectCostPriority(prompt: string): 'cost-optimized' | 'balanced' | 'performance' | null {
+  const lower = prompt.toLowerCase();
+  if (lower.includes('cost') || lower.includes('cheap') || lower.includes('budget') || lower.includes('right-size')) {
+    return 'cost-optimized';
+  }
+  if (lower.includes('performance') || lower.includes('fast') || lower.includes('low latency') || lower.includes('enterprise')) {
+    return 'performance';
+  }
+  return null;
+}
+
+/**
+ * Compute strategy detection
+ */
+function detectComputeHints(prompt: string): 'serverless' | 'containers' | 'ec2' | null {
+  const lower = prompt.toLowerCase();
+
+  // Explicit mentions
+  if (lower.includes('serverless') || lower.includes('lambda')) return 'serverless';
+  if (lower.includes('container') || lower.includes('docker') || lower.includes('ecs') || lower.includes('kubernetes')) return 'containers';
+  if (lower.includes('ec2') || lower.includes('instance')) return 'ec2';
+
+  // Implicit: long-lived connections need EC2/containers
+  if (lower.includes('streaming') || lower.includes('websocket') || lower.includes('real-time') || lower.includes('live')) {
+    return 'ec2'; // Long-lived connections
+  }
+
+  return null;
+}
+
+export interface InferredDefaults {
+  domain: AWSDomain;
+  defaults: DomainDefaults;
+  overrides: Partial<DomainDefaults>;
+  assumptions: string[];
+}
+
+/**
+ * Infer aggressive defaults from a sparse prompt
+ * Returns domain defaults + any overrides detected from the prompt
+ */
+export function inferDefaults(prompt: string): InferredDefaults | null {
+  const domain = detectDomain(prompt);
+  if (!domain) return null;
+
+  const baseDefaults = AWS_DOMAIN_DEFAULTS[domain];
+  const overrides: Partial<DomainDefaults> = {};
+  const assumptions: string[] = [];
+
+  // Try to extract scale from prompt
+  let scaleDetected = false;
+  for (const { pattern, extractor } of SCALE_PATTERNS) {
+    const match = prompt.match(pattern);
+    if (match) {
+      const { scale, number } = extractor(match);
+      overrides.scale = scale;
+      overrides.scaleNumber = number;
+      scaleDetected = true;
+      break;
+    }
+  }
+
+  if (!scaleDetected) {
+    assumptions.push(`Scale: ${baseDefaults.scale} (default for ${domain})`);
+  }
+
+  // Detect cost priority
+  const costPriority = detectCostPriority(prompt);
+  if (costPriority) {
+    overrides.costPriority = costPriority;
+  } else {
+    assumptions.push(`Cost priority: ${baseDefaults.costPriority} (default)`);
+  }
+
+  // Detect compute hints
+  const computeHint = detectComputeHints(prompt);
+  if (computeHint) {
+    overrides.computeStrategy = computeHint;
+  } else {
+    assumptions.push(`Compute: ${baseDefaults.computeStrategy} (default for ${domain})`);
+  }
+
+  // Add data and auth assumptions if not specified
+  assumptions.push(`Data: ${overrides.dataStrategy || baseDefaults.dataStrategy}`);
+  assumptions.push(`Auth: ${overrides.authPattern || baseDefaults.authPattern}`);
+
+  return {
+    domain,
+    defaults: baseDefaults,
+    overrides,
+    assumptions,
+  };
+}
+
+/**
+ * Build defaults context for prompt injection
+ * Includes the defaults and tells the model to use them
+ */
+export function buildDefaultsContext(inferred: InferredDefaults): string {
+  const { domain, defaults, overrides, assumptions } = inferred;
+  const effective = { ...defaults, ...overrides };
+
+  let context = `\n## INFERRED ARCHITECTURE CONSTRAINTS\n\n`;
+  context += `Based on the input, applying these defaults for **${domain}** architecture:\n\n`;
+
+  context += `| Parameter | Value | Reasoning |\n`;
+  context += `|-----------|-------|----------|\n`;
+  context += `| Scale | ${effective.scale} | ${overrides.scale ? 'Detected from input' : 'Domain default'} |\n`;
+  context += `| Compute | ${effective.computeStrategy} | ${overrides.computeStrategy ? 'Detected from input' : defaults.reasoning[0]} |\n`;
+  context += `| Cost Priority | ${effective.costPriority} | ${overrides.costPriority ? 'Detected from input' : 'Domain default'} |\n`;
+  context += `| Multi-tenancy | ${effective.multiTenancy} | Domain default |\n`;
+
+  context += `\n### Data Strategy\n${effective.dataStrategy}\n`;
+  context += `\n### Async Pattern\n${effective.asyncPattern}\n`;
+  context += `\n### Auth Pattern\n${effective.authPattern}\n`;
+
+  if (effective.instanceSizing) {
+    context += `\n### Instance Sizing\n${effective.instanceSizing}\n`;
+  }
+
+  context += `\n### Design Reasoning\n`;
+  for (const reason of defaults.reasoning) {
+    context += `- ${reason}\n`;
+  }
+
+  context += `\n**USE THESE CONSTRAINTS.** Size services accordingly. Be specific about instance types, capacity units, and storage tiers.\n`;
+
+  return context;
+}
+
+/**
+ * Format assumptions for output (to show users what was inferred)
+ */
+export function formatAssumptionsForOutput(inferred: InferredDefaults): string {
+  const { domain, defaults, overrides, assumptions } = inferred;
+  const effective = { ...defaults, ...overrides };
+
+  let output = `### Assumptions (inferred from input)\n\n`;
+  output += `| Parameter | Value |\n`;
+  output += `|-----------|-------|\n`;
+  output += `| Domain | ${domain} |\n`;
+  output += `| Scale | ${effective.scale} |\n`;
+  output += `| Compute | ${effective.computeStrategy} |\n`;
+  output += `| Cost Priority | ${effective.costPriority} |\n`;
+  output += `| Multi-tenancy | ${effective.multiTenancy} |\n`;
+  output += `| Data | ${effective.dataStrategy.split(',')[0]}... |\n`;
+  output += `| Auth | ${effective.authPattern} |\n`;
+
+  output += `\n*These defaults were applied because the input didn't specify them. Regenerate with more detail to override.*\n`;
+
+  return output;
+}
