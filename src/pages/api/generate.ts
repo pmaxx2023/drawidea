@@ -292,6 +292,81 @@ const WATERMARK_TEXT = 'getclario.net';
 // Styles that require two-pass generation (architecture reasoning first)
 const TWO_PASS_STYLES = ['aws'];
 
+// Image analysis prompt - extract architecture from pasted diagram
+const IMAGE_ANALYSIS_PROMPT = `Analyze this architecture diagram and extract its structure.
+
+OUTPUT FORMAT (strict):
+---
+TITLE: [System name from diagram, or infer from content]
+PROBLEM: [What problem does this system solve - infer from the architecture]
+
+SERVICES:
+- [ServiceName]: [Purpose - what it does based on its position and connections]
+...
+
+FLOWS:
+1. [FlowName]: [Trace the arrows/connections from entry to exit]
+...
+
+ASYNC_PATHS:
+- [Any queues, events, or async processing paths visible]
+...
+
+SECURITY:
+- Auth: [Any auth services visible - Cognito, IAM, etc.]
+- Protection: [WAF, firewalls, shields visible]
+
+DATA:
+- [Databases visible]: [What they likely store based on connections]
+...
+
+NOTES:
+- [Any text labels, annotations, or notes visible in the diagram]
+---
+
+Extract EVERYTHING visible. Include service names exactly as labeled.
+If arrows have labels, include those labels in the flows.
+If you can't determine something, make reasonable inferences based on typical patterns.`;
+
+/**
+ * Analyze an image to extract architecture structure
+ */
+async function analyzeImage(
+  ai: InstanceType<typeof GoogleGenAI>,
+  imageData: string,
+  mimeType: string
+): Promise<string | null> {
+  console.log('Analyzing input image...');
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: [{
+      parts: [
+        { text: IMAGE_ANALYSIS_PROMPT },
+        {
+          inlineData: {
+            mimeType: mimeType,
+            data: imageData,
+          },
+        },
+      ],
+    }],
+  });
+
+  if (response.candidates && response.candidates.length > 0) {
+    const parts = response.candidates[0].content?.parts || [];
+    for (const part of parts) {
+      if ('text' in part && part.text) {
+        console.log('Image analysis complete:', part.text.substring(0, 200) + '...');
+        return part.text;
+      }
+    }
+  }
+
+  console.error('Image analysis failed');
+  return null;
+}
+
 // Architecture reasoning prompt for pass 1 (text output)
 const ARCHITECTURE_REASONING_PROMPT = `You are a cloud architect. Analyze this system and output a STRUCTURED ARCHITECTURE DESCRIPTION.
 
@@ -454,10 +529,17 @@ async function generateSinglePass(
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const { concept, style } = await request.json();
+    const body = await request.json();
+    const { concept, style, image, imageMimeType } = body as {
+      concept?: string;
+      style: string;
+      image?: string; // base64 image data (without data:image/... prefix)
+      imageMimeType?: string; // e.g., 'image/png', 'image/jpeg'
+    };
 
-    if (!concept || typeof concept !== 'string') {
-      return new Response(JSON.stringify({ error: 'Missing concept' }), {
+    // Must have either concept (text) or image
+    if ((!concept || typeof concept !== 'string') && !image) {
+      return new Response(JSON.stringify({ error: 'Missing concept or image' }), {
         status: 400, headers: { 'Content-Type': 'application/json' }
       });
     }
@@ -468,16 +550,6 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
-    const isTwoPass = TWO_PASS_STYLES.includes(style);
-
-    console.log(JSON.stringify({
-      event: 'generate_prompt',
-      timestamp: new Date().toISOString(),
-      prompt: concept, style,
-      promptLength: concept.length,
-      twoPass: isTwoPass,
-    }));
-
     const apiKey = import.meta.env.GOOGLE_API_KEY;
     if (!apiKey) {
       return new Response('API key not configured', { status: 500 });
@@ -485,10 +557,45 @@ export const POST: APIRoute = async ({ request }) => {
 
     const ai = new GoogleGenAI({ apiKey });
 
+    // If image provided, analyze it first to extract architecture
+    let effectiveConcept = concept || '';
+    let hasImageInput = false;
+
+    if (image) {
+      hasImageInput = true;
+      const mimeType = imageMimeType || 'image/png';
+      const extractedArchitecture = await analyzeImage(ai, image, mimeType);
+
+      if (!extractedArchitecture) {
+        return new Response(JSON.stringify({ error: 'Failed to analyze image' }), {
+          status: 500, headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Combine extracted architecture with any additional text concept
+      if (concept) {
+        effectiveConcept = `USER REQUEST: ${concept}\n\nEXTRACTED FROM IMAGE:\n${extractedArchitecture}`;
+      } else {
+        effectiveConcept = `EXTRACTED FROM IMAGE:\n${extractedArchitecture}`;
+      }
+    }
+
+    const isTwoPass = TWO_PASS_STYLES.includes(style);
+
+    console.log(JSON.stringify({
+      event: 'generate_prompt',
+      timestamp: new Date().toISOString(),
+      prompt: effectiveConcept.substring(0, 500),
+      style,
+      promptLength: effectiveConcept.length,
+      twoPass: isTwoPass,
+      hasImageInput,
+    }));
+
     // Use two-pass for AWS style, single-pass for others
     const imageData = isTwoPass
-      ? await generateTwoPass(ai, concept, style)
-      : await generateSinglePass(ai, concept, style);
+      ? await generateTwoPass(ai, effectiveConcept, style)
+      : await generateSinglePass(ai, effectiveConcept, style);
 
     if (!imageData) {
       return new Response(JSON.stringify({ error: 'Failed to generate image' }), {
