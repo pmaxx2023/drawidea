@@ -70,6 +70,42 @@ TONE: Thought-provoking, sophisticated, emotionally resonant, magazine-worthy
 EXAMPLES: A person drowning in email envelopes. A head made of tangled wires. A house of cards made of dollar bills. A heart with a loading spinner. A brain maze. A person climbing a bar chart mountain.
 AVOID: Literal depictions, flowcharts, step-by-step diagrams, multiple labeled elements, busy compositions, clipart feel, generic stock photo concepts, photorealism`,
 
+  architecture: `System architecture reasoning diagram - focus on WHAT and WHY, not infrastructure plumbing:
+PURPOSE: Generate a clean, complete architecture showing services, flows, and purpose. This is the REASONING layer - get the design decisions right. Infrastructure details come later.
+
+REQUIREMENTS:
+1. Every service node must have a PURPOSE label (what it does, not just its name)
+2. Every edge must be labeled with WHAT flows (data type, action, protocol)
+3. Every flow must TERMINATE somewhere (no dead ends, no orphans)
+4. Pick ONE compute path per request type (don't hedge with multiple options)
+5. Async paths (queues, events) must show producer AND consumer
+6. Security services (auth, WAF) shown as explicit flow steps, not side decorations
+
+STRUCTURE:
+- INGRESS: How requests enter (DNS → CDN → Auth → Compute)
+- COMPUTE: Single layer per request type with clear purpose
+- DATA: Storage services with read/write distinction
+- ASYNC: Background processing with complete producer→queue→consumer chains
+- EGRESS: How responses/notifications leave
+
+VISUAL STYLE:
+- Clean boxes for services with bold labels
+- Directional arrows with flow labels
+- Color coding by function (compute=orange, data=blue, async=pink, security=red)
+- Clear visual separation between sync request path and async event path
+
+LABELS (required on every element):
+- Services: "Lambda: Process Orders" not just "Lambda"
+- Edges: "POST /order" or "order.created event" not just arrows
+- Queues: Show message type "OrderCreatedEvent"
+
+TITLE: System name at top
+PROBLEM: One line explaining what this system does
+
+OUTPUT: A complete, coherent architecture where a developer could trace any request from ingress to final storage/response.
+
+AVOID: VPC/subnet details, AZ placement, port numbers, security group rules, instance types - those are infrastructure, not architecture. Also avoid: orphan services, unlabeled edges, dead-end flows, duplicate services without distinct purposes.`,
+
   aws: `AWS architecture diagram - professional cloud infrastructure visualization:
 PURPOSE: Create an architecturally CORRECT AWS diagram. This is not decoration - it must represent real, deployable infrastructure.
 
@@ -253,6 +289,169 @@ AVOID: Incorrect cardinality constraints, missing standard extensions, wrong IG 
 
 const WATERMARK_TEXT = 'getclario.net';
 
+// Styles that require two-pass generation (architecture reasoning first)
+const TWO_PASS_STYLES = ['aws'];
+
+// Architecture reasoning prompt for pass 1 (text output)
+const ARCHITECTURE_REASONING_PROMPT = `You are a cloud architect. Analyze this system and output a STRUCTURED ARCHITECTURE DESCRIPTION.
+
+OUTPUT FORMAT (strict):
+---
+TITLE: [3-6 word system name]
+PROBLEM: [One sentence - what problem does this solve]
+
+SERVICES:
+- [ServiceName]: [Purpose - what it does, not what it is]
+- [ServiceName]: [Purpose]
+...
+
+FLOWS:
+1. [FlowName]: [Source] → [Action/Data] → [Destination] → [Action/Data] → [Final Destination]
+2. [FlowName]: [Complete path with labeled edges]
+...
+
+ASYNC_PATHS:
+- [Producer] → [Queue/Event: message type] → [Consumer] → [Storage]
+...
+
+SECURITY:
+- Auth: [How users authenticate]
+- Protection: [WAF, Shield, etc. and where in the flow]
+
+DATA:
+- [Database]: [What data, read/write pattern]
+...
+---
+
+RULES:
+1. Every flow must TERMINATE at storage or response
+2. ONE compute choice per flow (Lambda OR ECS OR EC2, not multiple)
+3. Every async path shows producer AND consumer
+4. Every service has a PURPOSE, not just a name
+5. Security services are flow steps, not side notes
+
+Be specific. Be complete. No orphans. No dead ends.`;
+
+/**
+ * Two-pass generation for styles that need architecture reasoning first
+ * Pass 1: Generate structured architecture (text)
+ * Pass 2: Render with target visual style (image)
+ */
+async function generateTwoPass(
+  ai: InstanceType<typeof GoogleGenAI>,
+  concept: string,
+  targetStyle: string
+): Promise<string | null> {
+  // Pass 1: Architecture reasoning (text only)
+  console.log('Pass 1: Generating architecture reasoning...');
+
+  const pass1Response = await ai.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: [{ parts: [{ text: `${ARCHITECTURE_REASONING_PROMPT}\n\nSYSTEM TO ARCHITECT:\n${concept}` }] }],
+  });
+
+  let architectureReasoning = '';
+  if (pass1Response.candidates && pass1Response.candidates.length > 0) {
+    const parts = pass1Response.candidates[0].content?.parts || [];
+    for (const part of parts) {
+      if ('text' in part && part.text) {
+        architectureReasoning = part.text;
+        break;
+      }
+    }
+  }
+
+  if (!architectureReasoning) {
+    console.error('Pass 1 failed: No architecture reasoning generated');
+    return null;
+  }
+
+  console.log('Pass 1 complete. Architecture reasoning:', architectureReasoning.substring(0, 200) + '...');
+
+  // Pass 2: Render with target style (image)
+  console.log('Pass 2: Rendering with', targetStyle, 'style...');
+
+  const stylePrompt = STYLE_PROMPTS[targetStyle];
+  const pass2Prompt = `${stylePrompt}
+
+ARCHITECTURE TO RENDER (already validated - do not change the services or flows, only visualize them):
+
+${architectureReasoning}
+
+RENDERING INSTRUCTIONS:
+- Use EXACTLY the services listed above
+- Use EXACTLY the flows listed above
+- Do NOT add services that aren't in the architecture
+- Do NOT remove or simplify flows
+- Apply the visual style to this pre-defined architecture
+
+Create the visual diagram with:
+1. TITLE at top (from architecture above)
+2. PROBLEM statement below title (from architecture above)
+3. Main diagram visualizing the exact services and flows specified
+4. Footer bar at bottom with "${WATERMARK_TEXT}"`;
+
+  const pass2Response = await ai.models.generateContent({
+    model: 'gemini-3-pro-image-preview',
+    contents: [{ parts: [{ text: pass2Prompt }] }],
+    config: {
+      responseModalities: ['TEXT', 'IMAGE'],
+      imageConfig: {
+        aspectRatio: '16:9',
+        imageSize: '2K',
+      },
+    },
+  });
+
+  if (pass2Response.candidates && pass2Response.candidates.length > 0) {
+    const parts = pass2Response.candidates[0].content?.parts || [];
+    for (const part of parts) {
+      if (part.inlineData && part.inlineData.data) {
+        console.log('Pass 2 complete. Image generated.');
+        return part.inlineData.data;
+      }
+    }
+  }
+
+  console.error('Pass 2 failed: No image generated');
+  return null;
+}
+
+/**
+ * Single-pass generation for styles that don't need architecture reasoning
+ */
+async function generateSinglePass(
+  ai: InstanceType<typeof GoogleGenAI>,
+  concept: string,
+  style: string
+): Promise<string | null> {
+  const stylePrompt = STYLE_PROMPTS[style];
+  const fullPrompt = stylePrompt + '\n\nCONTENT TO ILLUSTRATE: ' + concept + '\n\nCreate a visual illustration that explains this concept clearly. The diagram MUST have:\n1. A prominent TITLE at the top summarizing the concept (3-6 words)\n2. A PROBLEM statement in smaller font below the title (one sentence explaining what problem this solves)\n3. The main visual explanation below\n4. A footer bar at the very bottom of the image with "' + WATERMARK_TEXT + '" - make it visible and readable (use a contrasting background strip if needed), positioned bottom-center. This is branding, so it should be noticeable but not overwhelming.\n\nInclude short hand-written labels and annotations where helpful to clarify key elements. The illustration should be immediately understandable and capture the core idea.';
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-image-preview',
+    contents: [{ parts: [{ text: fullPrompt }] }],
+    config: {
+      responseModalities: ['TEXT', 'IMAGE'],
+      imageConfig: {
+        aspectRatio: '16:9',
+        imageSize: '2K',
+      },
+    },
+  });
+
+  if (response.candidates && response.candidates.length > 0) {
+    const parts = response.candidates[0].content?.parts || [];
+    for (const part of parts) {
+      if (part.inlineData && part.inlineData.data) {
+        return part.inlineData.data;
+      }
+    }
+  }
+
+  return null;
+}
+
 export const POST: APIRoute = async ({ request }) => {
   try {
     const { concept, style } = await request.json();
@@ -269,11 +468,14 @@ export const POST: APIRoute = async ({ request }) => {
       });
     }
 
+    const isTwoPass = TWO_PASS_STYLES.includes(style);
+
     console.log(JSON.stringify({
       event: 'generate_prompt',
       timestamp: new Date().toISOString(),
       prompt: concept, style,
       promptLength: concept.length,
+      twoPass: isTwoPass,
     }));
 
     const apiKey = import.meta.env.GOOGLE_API_KEY;
@@ -283,32 +485,10 @@ export const POST: APIRoute = async ({ request }) => {
 
     const ai = new GoogleGenAI({ apiKey });
 
-    const stylePrompt = STYLE_PROMPTS[style];
-    const fullPrompt = stylePrompt + '\n\nCONTENT TO ILLUSTRATE: ' + concept + '\n\nCreate a visual illustration that explains this concept clearly. The diagram MUST have:\n1. A prominent TITLE at the top summarizing the concept (3-6 words)\n2. A PROBLEM statement in smaller font below the title (one sentence explaining what problem this solves)\n3. The main visual explanation below\n4. A footer bar at the very bottom of the image with "' + WATERMARK_TEXT + '" - make it visible and readable (use a contrasting background strip if needed), positioned bottom-center. This is branding, so it should be noticeable but not overwhelming.\n\nInclude short hand-written labels and annotations where helpful to clarify key elements. The illustration should be immediately understandable and capture the core idea.';
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-image-preview',
-      contents: [{ parts: [{ text: fullPrompt }] }],
-      config: {
-        responseModalities: ['TEXT', 'IMAGE'],
-        imageConfig: {
-          aspectRatio: '16:9',
-          imageSize: '2K',
-        },
-      },
-    });
-
-    let imageData: string | undefined;
-
-    if (response.candidates && response.candidates.length > 0) {
-      const parts = response.candidates[0].content?.parts || [];
-      for (const part of parts) {
-        if (part.inlineData && part.inlineData.data) {
-          imageData = part.inlineData.data;
-          break;
-        }
-      }
-    }
+    // Use two-pass for AWS style, single-pass for others
+    const imageData = isTwoPass
+      ? await generateTwoPass(ai, concept, style)
+      : await generateSinglePass(ai, concept, style);
 
     if (!imageData) {
       return new Response(JSON.stringify({ error: 'Failed to generate image' }), {
