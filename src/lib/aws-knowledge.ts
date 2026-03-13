@@ -1140,6 +1140,194 @@ export const AWS_QUIBBLES: string[] = AWS_GOTCHAS
   .map(g => `${g.gotcha}. ${g.fix}`);
 
 /**
+ * AWS ARCHITECTURE VALIDATION RULES
+ * Hard rules that prevent common anti-patterns in generated architectures.
+ * These are NOT suggestions - violating these creates architecturally incorrect diagrams.
+ */
+export interface AWSArchitectureRule {
+  id: string;
+  category: 'flow' | 'placement' | 'redundancy' | 'completeness';
+  rule: string;
+  violation: string;
+  correct: string;
+  severity: 'error' | 'warning';
+}
+
+export const AWS_ARCHITECTURE_RULES: AWSArchitectureRule[] = [
+  // === FLOW RULES ===
+  {
+    id: 'api-gateway-entry-point',
+    category: 'flow',
+    rule: 'API Gateway is ALWAYS an entry point to compute, never behind it',
+    violation: 'API Gateway positioned after/behind ECS, Lambda, or EC2',
+    correct: 'Client → API Gateway → Lambda/ECS/Fargate → Database. API Gateway is the managed public-facing service that routes TO compute.',
+    severity: 'error',
+  },
+  {
+    id: 'single-compute-path',
+    category: 'flow',
+    rule: 'Each request type should have ONE compute path, not parallel competing paths',
+    violation: 'Same request (e.g., GET /products) handled by BOTH EC2 web servers AND ECS microservices/Lambda',
+    correct: 'Pick ONE compute layer per request type: either EC2 behind ALB, OR API Gateway + Lambda, OR ALB + ECS. Do not show both handling identical requests.',
+    severity: 'error',
+  },
+  {
+    id: 'complete-data-flows',
+    category: 'completeness',
+    rule: 'Every write operation must show the complete path to persistent storage',
+    violation: 'Checkout/order flow ends at Lambda or SNS without showing database write',
+    correct: 'PROCESS checkout → Lambda → [business logic] → RDS/DynamoDB (write order). Cache (ElastiCache) is not a substitute for durable storage.',
+    severity: 'error',
+  },
+  {
+    id: 'async-services-purpose',
+    category: 'completeness',
+    rule: 'Async services (SQS, SNS, EventBridge, Step Functions) must have clear input AND output',
+    violation: 'SQS/SNS/EventBridge shown as floating services with vague labels like "events" or "messages"',
+    correct: 'Show what produces messages AND what consumes them. Example: Order Service → SQS → Inventory Lambda → DynamoDB update',
+    severity: 'error',
+  },
+
+  // === PLACEMENT RULES ===
+  {
+    id: 'web-servers-private-subnet',
+    category: 'placement',
+    rule: 'Application servers behind a load balancer go in PRIVATE subnets, not public',
+    violation: 'EC2 web servers in PUBLIC subnet alongside ALB, exposed on ports 80/443',
+    correct: 'ALB in public subnet → EC2/ECS in private subnet. Only bastion hosts, NAT gateways, or ALBs should be in public subnets.',
+    severity: 'error',
+  },
+  {
+    id: 'database-private-subnet',
+    category: 'placement',
+    rule: 'Databases (RDS, Aurora, ElastiCache, DynamoDB endpoints) must be in private subnets',
+    violation: 'Database shown in public subnet or without VPC context',
+    correct: 'Databases in private subnet with no direct internet access. Access only from application tier.',
+    severity: 'error',
+  },
+  {
+    id: 'managed-services-outside-vpc',
+    category: 'placement',
+    rule: 'Managed services (CloudFront, Route53, S3, DynamoDB, API Gateway) are regional/global, not inside VPC',
+    violation: 'CloudFront, Route53, or API Gateway drawn inside a VPC box or private subnet',
+    correct: 'These services exist at the AWS edge/region level. They connect TO resources in your VPC, not inside it. Only show VPC endpoints if specifically discussing private connectivity.',
+    severity: 'warning',
+  },
+
+  // === REDUNDANCY RULES ===
+  {
+    id: 'single-cloudfront-per-origin',
+    category: 'redundancy',
+    rule: 'One CloudFront distribution per origin type (static vs dynamic)',
+    violation: 'Multiple CloudFront distributions pointing to the same ALB or S3 bucket',
+    correct: 'Use one CloudFront distribution with multiple origins/behaviors. Dual distributions only if serving completely different domains.',
+    severity: 'error',
+  },
+  {
+    id: 'alb-purpose-clarity',
+    category: 'redundancy',
+    rule: 'ALB should route to a target group, not directly to single instances',
+    violation: 'ALB shown routing directly to one EC2 instance with an arrow',
+    correct: 'ALB → Target Group → Multiple EC2/ECS tasks (for HA). If single instance, question whether ALB is needed at all.',
+    severity: 'warning',
+  },
+  {
+    id: 'avoid-service-duplication',
+    category: 'redundancy',
+    rule: 'Do not show the same service multiple times without clear justification',
+    violation: 'Multiple Lambda functions shown as separate boxes without distinct purposes',
+    correct: 'Group related Lambdas conceptually ("Order Processing Lambda" not "Lambda 1, Lambda 2, Lambda 3") or show as a single Lambda service with multiple functions.',
+    severity: 'warning',
+  },
+
+  // === COMPLETENESS RULES ===
+  {
+    id: 'ingress-chain-complete',
+    category: 'completeness',
+    rule: 'Public web applications should show complete ingress chain',
+    violation: 'Jumping from "Users" directly to EC2 or ECS without DNS, CDN, or load balancer',
+    correct: 'Route53 → CloudFront (for static/caching) → WAF → ALB → Compute. May omit CloudFront for internal apps.',
+    severity: 'warning',
+  },
+  {
+    id: 'auth-layer-explicit',
+    category: 'completeness',
+    rule: 'User-facing APIs should show authentication layer',
+    violation: 'API endpoints shown without any auth context (Cognito, IAM, API keys)',
+    correct: 'Show Cognito for user auth, or IAM for service-to-service. Even "API Gateway auth" is better than nothing.',
+    severity: 'warning',
+  },
+  {
+    id: 'monitoring-implicit',
+    category: 'completeness',
+    rule: 'CloudWatch/X-Ray are implicit - do not clutter diagram unless specifically discussing observability',
+    violation: 'CloudWatch shown connected to every single service with arrows everywhere',
+    correct: 'Omit monitoring connections or show once in a "Management" sidebar. Monitoring is assumed.',
+    severity: 'warning',
+  },
+];
+
+/**
+ * Build architecture validation context for prompts
+ * Returns rules formatted as constraints the LLM must follow
+ */
+export function buildArchitectureValidationContext(): string {
+  let context = `\n## ARCHITECTURE VALIDATION RULES (MUST FOLLOW)\n\n`;
+  context += `These are HARD RULES. Violating them creates architecturally incorrect diagrams.\n\n`;
+
+  const errors = AWS_ARCHITECTURE_RULES.filter(r => r.severity === 'error');
+  const warnings = AWS_ARCHITECTURE_RULES.filter(r => r.severity === 'warning');
+
+  context += `### CRITICAL ERRORS (Never do these):\n\n`;
+  for (const rule of errors) {
+    context += `**${rule.rule}**\n`;
+    context += `❌ WRONG: ${rule.violation}\n`;
+    context += `✓ CORRECT: ${rule.correct}\n\n`;
+  }
+
+  context += `### WARNINGS (Avoid unless justified):\n\n`;
+  for (const rule of warnings) {
+    context += `• **${rule.rule}** - ${rule.correct}\n`;
+  }
+
+  return context;
+}
+
+/**
+ * Validate architecture description against rules (for post-generation checking)
+ */
+export function validateArchitecture(description: string): { valid: boolean; violations: string[] } {
+  const violations: string[] = [];
+  const lowerDesc = description.toLowerCase();
+
+  // Check for API Gateway behind compute
+  if ((lowerDesc.includes('ecs') || lowerDesc.includes('lambda') || lowerDesc.includes('ec2')) &&
+      lowerDesc.includes('api gateway') &&
+      (lowerDesc.includes('→ api gateway') || lowerDesc.includes('to api gateway'))) {
+    violations.push('API Gateway appears to be placed after compute services');
+  }
+
+  // Check for web servers in public subnet
+  if (lowerDesc.includes('public subnet') &&
+      (lowerDesc.includes('web server') || lowerDesc.includes('ec2')) &&
+      !lowerDesc.includes('bastion') && !lowerDesc.includes('nat')) {
+    violations.push('Web servers may be incorrectly placed in public subnet');
+  }
+
+  // Check for multiple CloudFront to same origin
+  const cloudfrontCount = (lowerDesc.match(/cloudfront/g) || []).length;
+  const albCount = (lowerDesc.match(/alb|application load balancer/g) || []).length;
+  if (cloudfrontCount > 1 && albCount === 1) {
+    violations.push('Multiple CloudFront distributions may be pointing to same ALB');
+  }
+
+  return {
+    valid: violations.length === 0,
+    violations,
+  };
+}
+
+/**
  * Build AWS translation context for prompt injection
  */
 export function buildAWSContext(detectedServices: string[]): string {

@@ -70,6 +70,47 @@ TONE: Thought-provoking, sophisticated, emotionally resonant, magazine-worthy
 EXAMPLES: A person drowning in email envelopes. A head made of tangled wires. A house of cards made of dollar bills. A heart with a loading spinner. A brain maze. A person climbing a bar chart mountain.
 AVOID: Literal depictions, flowcharts, step-by-step diagrams, multiple labeled elements, busy compositions, clipart feel, generic stock photo concepts, photorealism`,
 
+  aws: `AWS architecture diagram - professional cloud infrastructure visualization:
+PURPOSE: Create an architecturally CORRECT AWS diagram. This is not decoration - it must represent real, deployable infrastructure.
+
+CRITICAL ARCHITECTURE RULES (MUST FOLLOW):
+1. API Gateway is ALWAYS an entry point to compute (Lambda/ECS), NEVER behind it
+2. Pick ONE compute layer per request type: Lambda OR ECS OR EC2, not multiple handling the same request
+3. Web/app servers go in PRIVATE subnets behind ALB, not public subnets
+4. Only bastion hosts, NAT gateways, and ALBs belong in public subnets
+5. Every write operation must show complete path to database (no flows ending at Lambda with no storage)
+6. Async services (SQS, SNS, EventBridge) must show both producer AND consumer
+7. ONE CloudFront distribution per origin type - never duplicate
+8. Managed services (CloudFront, Route53, API Gateway, S3) are REGIONAL, not inside VPC boxes
+
+CORRECT INGRESS PATTERNS:
+- Web app: Route53 → CloudFront → WAF → ALB → [Private subnet: EC2/ECS] → [Private subnet: RDS]
+- Serverless API: Route53 → API Gateway → Lambda → DynamoDB
+- Static site: Route53 → CloudFront → S3
+
+PLACEMENT RULES:
+- VPC contains: Subnets (public/private), EC2, ECS tasks, RDS, ElastiCache, Lambda (if VPC-connected)
+- OUTSIDE VPC: CloudFront, Route53, S3, DynamoDB, API Gateway, Cognito, CloudWatch, SNS, SQS
+
+VISUAL STYLE: Clean AWS reference architecture style with official service colors:
+- Compute (orange): EC2, Lambda, ECS
+- Database (blue): RDS, DynamoDB, ElastiCache
+- Network (purple): VPC, ALB, CloudFront, Route53, API Gateway
+- Security (red): IAM, Cognito, WAF, KMS
+- Integration (pink): SQS, SNS, EventBridge, Step Functions
+- Storage (green): S3, EBS, EFS
+
+LAYOUT:
+- Left-to-right or top-to-bottom data flow
+- Clear VPC boundary with public/private subnet zones
+- Availability zones shown as vertical columns within VPC
+- External services (CDN, DNS, auth) outside VPC boundary
+- Clean arrows showing request flow, labeled with protocols (HTTPS, gRPC, etc.)
+
+LABELS: Use actual AWS service names (not generic "database" - say "RDS PostgreSQL" or "DynamoDB")
+TITLE: Architecture name at top
+AVOID: Generic icons, services inside wrong boundaries, duplicate services without justification, incomplete flows, API Gateway behind compute`,
+
   roadmap: `Technical product architecture roadmap - a visual system diagram showing how to build something:
 PURPOSE: Transform a product/project idea into a technical architecture visualization showing the BUILD LAYERS and how components connect. Think AWS architecture diagrams meets hand-drawn energy.
 STRUCTURE: Break the input into logical TECHNICAL LAYERS arranged as connected system components:
@@ -93,7 +134,15 @@ ANNOTATIONS: Include brief technical notes like "REST API", "WebSocket", "OAuth2
 TITLE: Bold project name at top with "Architecture Overview" or "System Design" subtitle
 COLOR: Use color to distinguish layers - blues for infrastructure, greens for backend, oranges for frontend, purples for integrations
 TONE: Technical but clear, something a developer would pin on their wall during a build
-AVOID: Generic icons, cutesy illustrations, non-technical metaphors, vague labels like "magic happens here"`,
+
+CLOUD ARCHITECTURE RULES (if AWS/GCP/Azure services mentioned):
+- API Gateway/Cloud Functions entry point: Always at the TOP of the flow, routing TO compute
+- ONE compute path per request type: Don't show both Lambda AND EC2 handling the same /api/products request
+- Complete data flows: Every write must show the path to persistent storage (database)
+- Public vs Private: Load balancers public-facing, app servers behind them, databases furthest back
+- Async services (queues, events): Must show what PRODUCES and what CONSUMES messages
+
+AVOID: Generic icons, cutesy illustrations, non-technical metaphors, vague labels like "magic happens here", architecturally incorrect flows (API Gateway behind Lambda, web servers in front of load balancer)`,
 
   infographic: `Clean modern infographic with hub-and-spoke layout radiating from a central concept:
 BACKGROUND: Soft gradient from light lavender (#E8E4F0) to pale blue (#E0EAF5), clean and professional
