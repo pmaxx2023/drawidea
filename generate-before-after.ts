@@ -35,7 +35,7 @@ Overall:
 - Make it obvious this is a transformation`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.0-flash-exp",
+    model: "gemini-3-pro-image-preview",
     contents: [{ parts: [{ text: prompt }] }],
     config: {
       responseModalities: ["image", "text"],

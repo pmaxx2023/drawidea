@@ -30,7 +30,7 @@ Style: Like a stressed-out analyst made this at 11pm the night before a presenta
 Make it look genuinely bad but believable - like real corporate PowerPoint struggles.`;
 
   const response = await ai.models.generateContent({
-    model: "gemini-2.0-flash-exp",
+    model: "gemini-3-pro-image-preview",
     contents: [{ parts: [{ text: prompt }] }],
     config: {
       responseModalities: ["image", "text"],

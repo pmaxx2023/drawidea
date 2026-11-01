@@ -339,7 +339,7 @@ async function analyzeImage(
   console.log('Analyzing input image...');
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-3.5-flash',
     contents: [{
       parts: [
         { text: IMAGE_ANALYSIS_PROMPT },
@@ -421,7 +421,7 @@ async function generateTwoPass(
   console.log('Pass 1: Generating architecture reasoning...');
 
   const pass1Response = await ai.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-3.5-flash',
     contents: [{ parts: [{ text: `${ARCHITECTURE_REASONING_PROMPT}\n\nSYSTEM TO ARCHITECT:\n${concept}` }] }],
   });
 
